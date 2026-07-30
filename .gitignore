@@ -1,0 +1,21 @@
+# Jangan pernah unggah rahasia signing Android
+*.jks
+*.keystore
+keystore.properties
+local.properties
+*Signing*
+*Keystore*
+*RAHASIA*
+
+# Hasil build / arsip
+*.apk
+*.aab
+*.zip
+build/
+.gradle/
+
+# Sistem/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
