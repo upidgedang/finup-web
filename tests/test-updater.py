@@ -44,6 +44,8 @@ with tempfile.TemporaryDirectory() as temp_raw:
     run('git', 'remote', 'add', 'origin', str(remote), cwd=source)
     run('git', 'push', '-u', 'origin', 'main', cwd=source)
     run('git', 'clone', '-b', 'main', str(remote), str(app))
+    # Mode-only differences must not lock updates after VPS chmod.
+    (app / 'deploy' / 'finup_updater.py').chmod(0o755)
 
     # Create a newer remote revision after the VPS clone.
     version = json.loads((source / 'version.json').read_text())
@@ -69,6 +71,8 @@ with tempfile.TemporaryDirectory() as temp_raw:
 
     status = module.current_status(refresh=True)
     assert status['updateAvailable'] is True
+    assert status['dirty'] is False
+    assert status['dirtyFiles'] == []
     assert status['localVersion']['webRevision'] == 2
 
     result = module.perform_update()

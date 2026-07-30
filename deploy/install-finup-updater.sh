@@ -17,6 +17,10 @@ if [[ ! -d "$APP_DIR/.git" ]]; then
   exit 1
 fi
 
+# Abaikan perubahan mode executable yang diperlukan VPS agar repository tidak
+# salah dianggap memiliki perubahan lokal.
+git -C "$APP_DIR" config core.fileMode false
+
 apt-get update
 apt-get install -y python3 git nginx openssl
 
@@ -77,7 +81,8 @@ PY
 fi
 
 systemctl daemon-reload
-systemctl enable --now finup-web-updater
+systemctl enable finup-web-updater
+systemctl restart finup-web-updater
 nginx -t
 systemctl reload nginx
 

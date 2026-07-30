@@ -149,7 +149,7 @@ systemctl reload nginx
 
 ## C. Memasang updater pada instalasi lama
 
-Setelah source Revision 3 sudah berada di repository:
+Setelah source Revision 4 sudah berada di repository:
 
 ```bash
 cd /var/www/finup

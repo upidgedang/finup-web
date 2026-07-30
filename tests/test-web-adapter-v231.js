@@ -87,6 +87,7 @@ function makeContext(android = false) {
   const c = env.context;
   assert.strictEqual(c.__FINUP_PLATFORM__, 'web');
   assert.strictEqual(c.__finupWebAdapterV231, true);
+  assert.strictEqual(c.__finupWebRevision, 4);
   c.openSettingsPage();
   const html = env.elements.modalRoot.innerHTML;
   assert(html.includes('PIN browser'));
@@ -126,7 +127,7 @@ function makeContext(android = false) {
   assert(!privacy.includes('preferensi biometrik'));
   const about = c.infoContent('about');
   assert(about.includes('FinUp Web'));
-  assert(about.includes('Penyempurnaan Web v2.3.1 Revision 3'));
+  assert(about.includes('Penyempurnaan Web v2.3.1 Revision 4'));
   assert(about.includes('repository GitHub resmi'));
 })();
 

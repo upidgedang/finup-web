@@ -74,6 +74,10 @@ def remote_slug(remote_url: str) -> str:
 def ensure_repository() -> str:
     if not APP_DIR.is_dir() or not (APP_DIR / ".git").exists():
         raise RuntimeError(f"Folder {APP_DIR} bukan repository Git.")
+    # GitHub web uploads commonly store files as 0644, while the VPS installer
+    # needs executable permissions for scripts. Ignore mode-only differences so
+    # they do not incorrectly lock automatic updates.
+    git("config", "core.fileMode", "false")
     origin = git("config", "--get", "remote.origin.url")
     if remote_slug(origin) != REPO_SLUG:
         raise RuntimeError("Remote origin bukan repository FinUp Web yang diizinkan.")
@@ -104,7 +108,9 @@ def current_status(refresh: bool = False) -> dict[str, Any]:
         if not remote_line:
             raise RuntimeError(f"Branch {BRANCH} tidak ditemukan pada repository.")
         remote_commit = remote_line.split()[0]
-        dirty = bool(git("status", "--porcelain", "--untracked-files=no"))
+        dirty_output = git("status", "--porcelain", "--untracked-files=no")
+        dirty_files = [line[3:] for line in dirty_output.splitlines() if len(line) > 3]
+        dirty = bool(dirty_files)
         update_available = local_commit != remote_commit
         value = {
             "ok": True,
@@ -117,6 +123,7 @@ def current_status(refresh: bool = False) -> dict[str, Any]:
             "remoteCommit": remote_commit,
             "updateAvailable": update_available,
             "dirty": dirty,
+            "dirtyFiles": dirty_files[:100],
             "localVersion": read_version(),
             "checkedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }
@@ -255,7 +262,7 @@ def perform_update() -> dict[str, Any]:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "FinUpUpdater/1.0"
+    server_version = "FinUpUpdater/1.1"
 
     def log_message(self, fmt: str, *args: Any) -> None:
         # Keep journald useful without logging request headers or tokens.

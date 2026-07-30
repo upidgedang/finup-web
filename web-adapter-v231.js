@@ -1,4 +1,4 @@
-/* FinUp Web v2.3.1 — browser adapter revision 3 (2026-07-30).
+/* FinUp Web v2.3.1 — browser adapter revision 4 (2026-07-31).
  * Keeps the shared FinUp application core aligned with Android while replacing
  * Android-only bridges and labels with browser-native behavior, including a secured VPS updater.
  */
@@ -187,7 +187,7 @@
         updateElementText('finupWebRemoteCommit', status ? shortCommit(status.remoteCommit) : '-');
         updateElementText('finupWebLocalVersion', status && status.localVersion
             ? status.localVersion.versionName + ' · Web Revision ' + status.localVersion.webRevision
-            : APP_VERSION + ' · Web Revision 3');
+            : APP_VERSION + ' · Web Revision 4');
         var updateButton = document.getElementById('finupWebUpdateRun');
         if (updateButton) updateButton.disabled = !status || !status.updateAvailable || !!status.dirty;
         var notice = document.getElementById('finupWebUpdateNotice');
@@ -233,7 +233,7 @@
     window.openFinUpWebUpdatePage = function () {
         $('modalRoot').innerHTML = '<div class="modal-wrap"><div class="modal"><div class="modal-handle"></div><h3>Update FinUp Web</h3>'
             + '<div id="finupWebUpdateNotice" class="notice notice-info"><b id="finupWebUpdateState">Memeriksa pembaruan dari GitHub...</b><br>Repository resmi: <b>upidgedang/finup-web</b>. Pemeriksaan dilakukan otomatis saat halaman ini dibuka.</div>'
-            + '<div class="card"><div class="row-between"><span>Versi terpasang</span><b id="finupWebLocalVersion">' + esc(APP_VERSION) + ' · Web Revision 3</b></div>'
+            + '<div class="card"><div class="row-between"><span>Versi terpasang</span><b id="finupWebLocalVersion">' + esc(APP_VERSION) + ' · Web Revision 4</b></div>'
             + '<div class="row-between"><span>Commit lokal</span><b id="finupWebLocalCommit">-</b></div>'
             + '<div class="row-between"><span>Commit terbaru</span><b id="finupWebRemoteCommit">-</b></div></div>'
             + '<div class="field"><label>Token admin update VPS</label><input id="finupWebUpdateToken" class="input" type="password" autocomplete="new-password" placeholder="Masukkan token dari /etc/finup-web-updater.env"></div>'
@@ -369,7 +369,7 @@
             return '<div class="version-box"><img src="logo-mark.png"><h2>FinUp Web</h2><p>Atur uang, raih tujuan.</p><span class="badge badge-green">Versi ' + APP_VERSION + '</span><p>Version Code ' + VERSION_CODE + '</p></div>'
                 + '<div class="legal"><h3>Pengembang</h3><p><b>' + esc(typeof FINUP_DEVELOPER_V213 !== 'undefined' ? FINUP_DEVELOPER_V213 : 'FinUp') + '</b><br>'
                 + esc(typeof FINUP_SUPPORT_EMAIL_V213 !== 'undefined' ? FINUP_SUPPORT_EMAIL_V213 : 'upidgedang@gmail.com') + '</p>'
-                + '<h3>Penyempurnaan Web v2.3.1 Revision 3</h3><ul><li>Menu Update FinUp Web memeriksa dan memasang pembaruan dari repository GitHub resmi melalui updater VPS bertoken admin.</li><li>Menu Android disembunyikan dari versi web.</li><li>Backup JSON, impor JSON, dan ekspor CSV memakai pemilih serta unduhan file browser.</li><li>Laporan PDF dibuka melalui dialog Cetak/Simpan sebagai PDF browser.</li><li>Pengingat web hanya menampilkan pengingat dalam aplikasi tanpa pengaturan notifikasi Android.</li><li>Keamanan web menampilkan PIN browser, auto-lock, dan privasi nominal tanpa menawarkan biometrik atau perlindungan screenshot Android.</li></ul>'
+                + '<h3>Penyempurnaan Web v2.3.1 Revision 4</h3><ul><li>Koneksi same-origin ke layanan updater VPS diizinkan oleh Content Security Policy.</li><li>Deteksi perubahan Git mengabaikan perbedaan permission file sehingga updater tidak terkunci setelah instalasi.</li><li>Menu Update FinUp Web memeriksa dan memasang pembaruan dari repository GitHub resmi melalui updater VPS bertoken admin.</li><li>Menu Android disembunyikan dari versi web.</li><li>Backup JSON, impor JSON, dan ekspor CSV memakai pemilih serta unduhan file browser.</li><li>Laporan PDF dibuka melalui dialog Cetak/Simpan sebagai PDF browser.</li><li>Pengingat web hanya menampilkan pengingat dalam aplikasi tanpa pengaturan notifikasi Android.</li><li>Keamanan web menampilkan PIN browser, auto-lock, dan privasi nominal tanpa menawarkan biometrik atau perlindungan screenshot Android.</li></ul>'
                 + '<h3>Teknologi</h3><p>Firebase Authentication, Cloud Firestore, dan Realtime Database digunakan berdasarkan UID pengguna. Data inti dan aturan sinkronisasi sama dengan aplikasi Android.</p></div>';
         }
         if (kind === 'tutorial') {
@@ -411,5 +411,5 @@
     }
 
     window.__finupWebAdapterV231 = true;
-    window.__finupWebRevision = 3;
+    window.__finupWebRevision = 4;
 })();

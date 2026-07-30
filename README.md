@@ -1,4 +1,4 @@
-# FinUp Web v2.3.1 — Web Revision 3
+# FinUp Web v2.3.1 — Web Revision 4
 
 FinUp Web adalah versi browser dari FinUp dengan Firebase Authentication, Cloud Firestore, Realtime Database, backup JSON, impor JSON, laporan CSV, dan Cetak/Simpan PDF melalui browser.
 
@@ -14,7 +14,7 @@ Domain produksi yang digunakan dalam contoh konfigurasi:
 https://finup.gawelive.xyz
 ```
 
-## Yang baru pada Web Revision 3
+## Yang baru pada Web Revision 4
 
 - Menu **Pengaturan → Update FinUp Web**.
 - Pemeriksaan commit terbaru otomatis saat Pengaturan atau halaman Update dibuka.
@@ -49,7 +49,7 @@ git clone https://github.com/upidgedang/finup-web.git /var/www/finup
 cd /var/www/finup
 ```
 
-Sebelum rilis Revision 3 dipush, bersihkan file lama yang bukan bagian FinUp Web dari repository, termasuk APK GitUp yang saat ini masih tercatat:
+Sebelum rilis Revision 4 dipush, bersihkan file lama yang bukan bagian FinUp Web dari repository, termasuk APK GitUp yang saat ini masih tercatat:
 
 ```bash
 git rm -f GitUp-v1.0.1-Production-signed.apk 2>/dev/null || true
@@ -97,7 +97,7 @@ certbot renew --dry-run
 
 Tambahkan `finup.gawelive.xyz` pada **Firebase Authentication → Settings → Authorized domains**.
 
-## Memperbarui instalasi lama ke Revision 3
+## Memperbarui instalasi lama ke Revision 4
 
 Jalankan melalui SSH:
 
