@@ -2,21 +2,51 @@ server {
     listen 80;
     listen [::]:80;
 
-    server_name finup.DOMAIN-ANDA.com;
+    server_name finup.gawelive.xyz;
     root /var/www/finup;
     index index.html;
+
+    # API updater diteruskan ke service lokal. Endpoint update tetap memerlukan
+    # token admin yang disimpan di /etc/finup-web-updater.env.
+    include /etc/nginx/snippets/finup-updater-location.conf;
+
+    # Jangan pernah melayani metadata Git atau file tersembunyi.
+    location ~ /\.(?!well-known/) {
+        deny all;
+    }
+
+    # Tolak file privat Android/signing jika tidak sengaja tersalin ke web root.
+    location ~* \.(?:jks|keystore|p12|pfx|pem|key|apk|aab|zip)$ {
+        deny all;
+    }
+
+    # index.html selalu diperiksa ulang agar pembaruan UI langsung terbaca.
+    location = /index.html {
+        try_files $uri =404;
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+    }
+
+    location = /version.json {
+        try_files $uri =404;
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+    }
 
     location / {
         try_files $uri $uri/ /index.html;
     }
 
+    # Aset boleh dicache singkat. Query versi pada index.html memastikan aset
+    # baru langsung dipakai setelah pembaruan.
     location ~* \.(?:js|css|png|jpg|jpeg|gif|svg|ico|webp|woff|woff2)$ {
         try_files $uri =404;
-        expires 7d;
-        add_header Cache-Control "public, max-age=604800";
+        expires 1h;
+        add_header Cache-Control "public, max-age=3600, must-revalidate" always;
     }
 
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "DENY" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 }

@@ -19,3 +19,14 @@ build/
 Thumbs.db
 .idea/
 .vscode/
+
+# Rahasia server dan private key
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+service-account*.json
+google-service-account*.json
+finup-web-updater.env

@@ -1,155 +1,209 @@
-# FinUp Web v2.3.1 — Deployment Debian VPS
+# Panduan Instalasi dan Update FinUp Web pada Debian VPS
 
-> **PRIVATE:** Paket ini memuat konfigurasi Firebase milik FinUp. Gunakan repository GitHub **Private**. Paket ini tidak memuat keystore atau password signing Android.
+Dokumen ini menggunakan:
 
-## 1. Buat repository GitHub privat
+- Repository: `https://github.com/upidgedang/finup-web.git`
+- Branch: `main`
+- Web root: `/var/www/finup`
+- Domain: `finup.gawelive.xyz`
+- Service updater: `finup-web-updater`
 
-Buat repository bernama `finup-web` dan pilih **Private**.
+## A. Instalasi baru
 
-Dari folder ini jalankan:
-
-```bash
-git init
-git branch -M main
-git add .
-git commit -m "FinUp Web v2.3.1"
-git remote add origin git@github.com:USERNAME-GITHUB/finup-web.git
-git push -u origin main
-```
-
-## 2. Arahkan domain
+### 1. Hubungkan domain ke VPS
 
 Buat DNS record:
 
 ```text
 Type: A
-Name: finup
-Value: IP-VPS-ANDA
+Host/Name: finup
+Value: IP VPS
 ```
 
-Contoh alamat aplikasi: `https://finup.domainanda.com`.
+Tunggu DNS mengarah ke VPS, lalu lanjutkan.
 
-## 3. Instal paket dasar di Debian
-
-Masuk ke VPS:
+### 2. Instal paket server
 
 ```bash
-ssh root@IP-VPS-ANDA
+ssh root@IP_VPS
 apt update
-apt install -y nginx git openssh-client certbot python3-certbot-nginx
+apt install -y nginx git python3 openssl certbot python3-certbot-nginx
 systemctl enable --now nginx
 ```
 
-## 4. Hubungkan VPS ke GitHub private dengan deploy key
-
-```bash
-ssh-keygen -t ed25519 -C "finup-vps" -f ~/.ssh/finup_deploy -N ""
-cat ~/.ssh/finup_deploy.pub
-```
-
-Salin hasil public key, lalu buka GitHub:
-
-`Repository finup-web → Settings → Deploy keys → Add deploy key`
-
-Jangan centang **Allow write access**.
-
-Buat konfigurasi SSH:
-
-```bash
-cat > ~/.ssh/config <<'SSHCONF'
-Host github-finup
-    HostName github.com
-    User git
-    IdentityFile ~/.ssh/finup_deploy
-    IdentitiesOnly yes
-SSHCONF
-chmod 600 ~/.ssh/config
-ssh-keyscan github.com >> ~/.ssh/known_hosts
-ssh -T github-finup
-```
-
-## 5. Clone aplikasi ke web root
-
-Ganti `USERNAME-GITHUB`:
+### 3. Clone source FinUp Web
 
 ```bash
 rm -rf /var/www/finup
-GIT_SSH_COMMAND="ssh -F /root/.ssh/config" git clone \
-  git@github-finup:USERNAME-GITHUB/finup-web.git /var/www/finup
-chown -R www-data:www-data /var/www/finup
-find /var/www/finup -type d -exec chmod 755 {} \;
-find /var/www/finup -type f -exec chmod 644 {} \;
+git clone https://github.com/upidgedang/finup-web.git /var/www/finup
+cd /var/www/finup
 ```
 
-Jika login VPS memakai pengguna non-root, sesuaikan lokasi file SSH dan jalankan perintah yang memerlukan hak admin memakai `sudo`.
+Repository web harus dibersihkan dari APK/AAB/ZIP dan file aplikasi lain. Pada repository lama, hapus APK GitUp sebelum membuat rilis web:
 
-## 6. Aktifkan konfigurasi Nginx
+```bash
+git rm -f GitUp-v1.0.1-Production-signed.apk 2>/dev/null || true
+git rm -r --cached '*.apk' '*.aab' '*.zip' 2>/dev/null || true
+```
+
+### 4. Atur ownership dan permission
+
+```bash
+chown -R root:www-data /var/www/finup
+find /var/www/finup -type d -exec chmod 755 {} \;
+find /var/www/finup -type f -exec chmod 644 {} \;
+find /var/www/finup/deploy -type f -name '*.sh' -exec chmod 755 {} \;
+chmod 755 /var/www/finup/deploy/finup_updater.py
+```
+
+### 5. Instal updater otomatis
+
+```bash
+sudo bash /var/www/finup/deploy/install-finup-updater.sh
+```
+
+Simpan token yang ditampilkan. Token yang sama dapat dilihat oleh root melalui:
+
+```bash
+sudo cat /etc/finup-web-updater.env
+```
+
+### 6. Pasang konfigurasi Nginx
 
 ```bash
 cp /var/www/finup/deploy/nginx-finup.conf.example /etc/nginx/sites-available/finup
-nano /etc/nginx/sites-available/finup
-```
-
-Ganti `finup.DOMAIN-ANDA.com` dengan domain sebenarnya, lalu:
-
-```bash
 ln -sfn /etc/nginx/sites-available/finup /etc/nginx/sites-enabled/finup
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
 systemctl reload nginx
 ```
 
-Tes lebih dahulu:
+Buka sementara:
 
 ```text
-http://finup.domainanda.com
+http://finup.gawelive.xyz
 ```
 
-## 7. Aktifkan HTTPS
+### 7. Aktifkan HTTPS
 
 ```bash
-certbot --nginx -d finup.domainanda.com
+certbot --nginx -d finup.gawelive.xyz
 certbot renew --dry-run
 ```
 
-## 8. Izinkan domain pada Firebase
+### 8. Izinkan domain di Firebase
 
-Di Firebase Console:
+Tambahkan domain berikut pada Firebase Authentication Authorized domains:
 
-1. Buka project FinUp.
-2. Buka **Authentication → Settings → Authorized domains**.
-3. Tambahkan `finup.domainanda.com`.
-4. Di **Project settings → Your apps**, daftarkan Web App FinUp.
-5. Salin konfigurasi Web App dan sesuaikan konstanta `FIREBASE_CONFIG` pada `index.html` bila konfigurasi web berbeda.
-6. Pastikan Firestore Rules dan Realtime Database Rules tetap membatasi data berdasarkan UID pengguna.
+```text
+finup.gawelive.xyz
+```
 
-## 9. Memperbarui aplikasi
+Pastikan Firestore Rules dan Realtime Database Rules membatasi data berdasarkan UID pengguna.
 
-Setelah perubahan dipush ke GitHub:
+### 9. Uji updater
+
+```bash
+systemctl status finup-web-updater --no-pager
+curl http://127.0.0.1:8731/api/finup-update/health
+curl http://127.0.0.1:8731/api/finup-update/status
+```
+
+Kemudian buka FinUp Web:
+
+```text
+Lainnya → Pengaturan → Update FinUp Web
+```
+
+## B. Memperbarui FinUp Web
+
+### Metode 1 — Menu Update FinUp Web
+
+1. Push source versi terbaru ke branch `main` repository resmi.
+2. Buka FinUp Web.
+3. Pilih **Lainnya → Pengaturan → Update FinUp Web**.
+4. Tunggu pemeriksaan commit otomatis.
+5. Masukkan token admin VPS.
+6. Tekan **Update sekarang**.
+
+Updater hanya menerima fast-forward dari repository `upidgedang/finup-web`, menolak perubahan lokal, memblokir file signing/keystore, menguji file wajib, dan melakukan rollback bila Nginx gagal.
+
+### Metode 2 — Script SSH
+
+```bash
+sudo bash /var/www/finup/deploy/update-finup.sh
+```
+
+### Metode 3 — Git manual
 
 ```bash
 cd /var/www/finup
-git pull --ff-only
-chown -R www-data:www-data /var/www/finup
+git status
+git pull --ff-only origin main
+chown -R root:www-data /var/www/finup
+find /var/www/finup -type d -exec chmod 755 {} \;
+find /var/www/finup -type f -exec chmod 644 {} \;
 nginx -t
 systemctl reload nginx
 ```
 
-Atau jalankan:
+## C. Memasang updater pada instalasi lama
+
+Setelah source Revision 3 sudah berada di repository:
 
 ```bash
-bash /var/www/finup/deploy/update-finup.sh
+cd /var/www/finup
+git pull --ff-only origin main
+sudo bash /var/www/finup/deploy/install-finup-updater.sh
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
-## Batasan versi awal web
+Installer akan membuat:
 
-Fitur transaksi, dashboard, login Firebase, Firestore, dan sinkronisasi dapat diuji dari browser. Fitur berikut masih bergantung pada bridge Android dan perlu adapter web sebelum rilis produksi penuh:
+```text
+/opt/finup-web-updater/finup_updater.py
+/etc/finup-web-updater.env
+/etc/systemd/system/finup-web-updater.service
+/etc/nginx/snippets/finup-updater-location.conf
+```
 
-- Impor/ekspor melalui penyimpanan Android
-- PDF native Android
-- Biometrik Android
-- Notifikasi terjadwal Android
-- Perlindungan screenshot
-- Penyimpanan aman berbasis Android Keystore
+## D. Mengganti token update
 
-Jangan unggah ZIP Developer Package, Source-With-Signing, Signing-Keystore, keystore, password signing, APK, atau AAB ke repository web.
+```bash
+NEW_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(36))')"
+sed -i "s|^FINUP_UPDATE_TOKEN=.*|FINUP_UPDATE_TOKEN=$NEW_TOKEN|" /etc/finup-web-updater.env
+systemctl restart finup-web-updater
+printf '%s\n' "$NEW_TOKEN"
+```
+
+## E. Rollback manual
+
+Lihat riwayat commit:
+
+```bash
+cd /var/www/finup
+git log --oneline -10
+```
+
+Kembali ke commit tertentu:
+
+```bash
+git reset --hard COMMIT_SEBELUMNYA
+chown -R root:www-data /var/www/finup
+nginx -t
+systemctl reload nginx
+```
+
+## F. Larangan penting
+
+Jangan upload file berikut ke repository web:
+
+- Keystore/signing Android.
+- Password keystore.
+- Source-With-Signing.
+- Developer Package RAHASIA.
+- File service-account Firebase.
+- `/etc/finup-web-updater.env`.
+
+Source web yang di-push ke GitHub harus hanya berisi file yang memang aman dilayani oleh Nginx.

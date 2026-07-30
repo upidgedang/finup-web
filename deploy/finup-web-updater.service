@@ -1,0 +1,21 @@
+[Unit]
+Description=FinUp Web GitHub Updater
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+EnvironmentFile=/etc/finup-web-updater.env
+ExecStart=/usr/bin/python3 /opt/finup-web-updater/finup_updater.py
+Restart=on-failure
+RestartSec=5
+UMask=0022
+PrivateTmp=true
+ProtectHome=true
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
