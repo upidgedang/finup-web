@@ -1,226 +1,175 @@
-# FinUp Web v2.3.1 — Web Revision 4
+# FinUp Web v2.3.2 — Web Revision 1
 
-FinUp Web adalah versi browser dari FinUp dengan Firebase Authentication, Cloud Firestore, Realtime Database, backup JSON, impor JSON, laporan CSV, dan Cetak/Simpan PDF melalui browser.
+FinUp Web adalah versi browser FinUp yang menggunakan Firebase Authentication, Cloud Firestore, dan Realtime Database yang sama dengan aplikasi Android.
 
-Repository resmi:
+- Repository resmi: `https://github.com/upidgedang/finup-web.git`
+- Branch produksi: `main`
+- Domain contoh produksi: `https://finup.gawelive.xyz`
+- Web root: `/var/www/finup`
+- Updater lokal: `127.0.0.1:8731`
+
+## Perubahan v2.3.2
+
+- Sesi web memakai `sessionStorage` secara default. Penyimpanan persisten hanya dipakai bila pengguna memilih **Tetap masuk di browser ini**.
+- Sesi lama dari Revision 4 dimigrasikan dari penyimpanan persisten ke penyimpanan tab apabila pengguna belum memilih untuk tetap masuk.
+- Impor backup JSON divalidasi per koleksi, ukuran file dibatasi 25 MB, jumlah record dibatasi, field asing dibuang, dan struktur berbahaya ditolak.
+- FinUp menampilkan ringkasan data sebelum impor dan membuat backup otomatis sebelum **Ganti seluruh data**.
+- Menu updater hanya dapat memeriksa status dan menjalankan update setelah token administrator VPS dimasukkan.
+- Percobaan token salah dibatasi; lima kegagalan dalam 15 menit mengunci akses klien selama 15 menit.
+- Updater menolak perubahan lokal, file tidak terlacak, APK, AAB, ZIP, keystore, private key, symlink, dan file terlalu besar di web root.
+- Runtime updater di `/opt`, unit systemd, dan snippet Nginx ikut diperbarui setelah update berhasil.
+- Menu, tutorial, pengingat, keamanan, backup, CSV, dan PDF menampilkan fungsi yang sesuai untuk browser.
+- Header keamanan Nginx ditingkatkan. Core UI lama masih memerlukan `unsafe-inline`; migrasi modul penuh akan dilakukan bertahap pada rilis selanjutnya.
+
+## Instalasi pada VPS Debian yang juga menjalankan StreamFlow
+
+FinUp tidak memakai port StreamFlow. Contoh susunan layanan:
 
 ```text
-https://github.com/upidgedang/finup-web.git
+https://gawelive.xyz        -> Nginx -> 127.0.0.1:7575 (StreamFlow)
+https://finup.gawelive.xyz  -> Nginx -> /var/www/finup (FinUp Web)
+Updater FinUp               -> 127.0.0.1:8731
 ```
 
-Domain produksi yang digunakan dalam contoh konfigurasi:
+Jangan mengubah service StreamFlow, port `7575`, atau server block `gawelive.xyz`.
 
-```text
-https://finup.gawelive.xyz
-```
-
-## Yang baru pada Web Revision 4
-
-- Menu **Pengaturan → Update FinUp Web**.
-- Pemeriksaan commit terbaru otomatis saat Pengaturan atau halaman Update dibuka.
-- Pembaruan satu tombol dari branch `main` repository resmi.
-- Endpoint update dilindungi token admin yang disimpan di VPS, bukan di source web.
-- Validasi fast-forward, repository resmi, file wajib, file rahasia, ukuran file, izin file, dan konfigurasi Nginx.
-- Rollback otomatis ke commit sebelumnya jika validasi atau reload Nginx gagal.
-- Cache-busting aset JavaScript melalui query versi.
-- README instalasi baru dan panduan pembaruan lengkap.
-
-## Instalasi baru pada Debian VPS
-
-Masuk ke VPS sebagai root:
+### 1. Instal paket dasar
 
 ```bash
-ssh root@IP_VPS
+sudo apt update
+sudo apt install -y nginx git python3 openssl certbot python3-certbot-nginx
+sudo systemctl enable --now nginx
 ```
 
-Instal paket dasar:
+### 2. Clone repository
 
 ```bash
-apt update
-apt install -y nginx git python3 openssl certbot python3-certbot-nginx
-systemctl enable --now nginx
-```
-
-Clone repository resmi:
-
-```bash
-rm -rf /var/www/finup
-git clone https://github.com/upidgedang/finup-web.git /var/www/finup
+sudo mkdir -p /var/www
+sudo git clone --branch main --single-branch \
+  https://github.com/upidgedang/finup-web.git /var/www/finup
 cd /var/www/finup
+sudo git config core.fileMode false
 ```
 
-Sebelum rilis Revision 4 dipush, bersihkan file lama yang bukan bagian FinUp Web dari repository, termasuk APK GitUp yang saat ini masih tercatat:
+### 3. Atur permission
 
 ```bash
-git rm -f GitUp-v1.0.1-Production-signed.apk 2>/dev/null || true
-git rm -r --cached '*.apk' '*.aab' '*.zip' 2>/dev/null || true
+sudo chown -R root:www-data /var/www/finup
+sudo find /var/www/finup -type d -exec chmod 755 {} \;
+sudo find /var/www/finup -type f -exec chmod 644 {} \;
+sudo find /var/www/finup/deploy -type f -name '*.sh' -exec chmod 755 {} \;
+sudo chmod 755 /var/www/finup/deploy/finup_updater.py
 ```
 
-Atur izin aman untuk web root:
-
-```bash
-chown -R root:www-data /var/www/finup
-find /var/www/finup -type d -exec chmod 755 {} \;
-find /var/www/finup -type f -exec chmod 644 {} \;
-find /var/www/finup/deploy -type f -name '*.sh' -exec chmod 755 {} \;
-chmod 755 /var/www/finup/deploy/finup_updater.py
-```
-
-Pasang layanan updater otomatis:
+### 4. Instal updater
 
 ```bash
 sudo bash /var/www/finup/deploy/install-finup-updater.sh
 ```
 
-Perintah tersebut akan menampilkan **token admin update**. Simpan token secara rahasia. Token juga tersimpan di:
+Simpan token yang ditampilkan. Token disimpan di luar web root:
 
 ```text
 /etc/finup-web-updater.env
 ```
 
-Pasang konfigurasi Nginx:
+### 5. Pasang server block FinUp
 
 ```bash
-cp /var/www/finup/deploy/nginx-finup.conf.example /etc/nginx/sites-available/finup
-ln -sfn /etc/nginx/sites-available/finup /etc/nginx/sites-enabled/finup
-rm -f /etc/nginx/sites-enabled/default
-nginx -t
-systemctl reload nginx
+sudo cp /var/www/finup/deploy/nginx-finup.conf.example \
+  /etc/nginx/sites-available/finup
+sudo ln -sfn /etc/nginx/sites-available/finup \
+  /etc/nginx/sites-enabled/finup
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
-Aktifkan HTTPS:
+Jangan menjalankan perintah yang menghapus konfigurasi StreamFlow atau `sites-enabled/default` kecuali Anda sudah memeriksa bahwa file itu tidak dipakai layanan lain.
+
+### 6. Aktifkan HTTPS
 
 ```bash
-certbot --nginx -d finup.gawelive.xyz
-certbot renew --dry-run
+sudo certbot --nginx -d finup.gawelive.xyz --redirect
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
 Tambahkan `finup.gawelive.xyz` pada **Firebase Authentication → Settings → Authorized domains**.
 
-## Memperbarui instalasi lama ke Revision 4
+## Upgrade dari Web Revision 4 ke v2.3.2
 
-Jalankan melalui SSH:
+Revision 4 belum dapat mengganti runtime updater-nya sendiri. Setelah source v2.3.2 sudah dipush ke GitHub, jalankan satu kali melalui SSH:
 
 ```bash
 cd /var/www/finup
-git pull --ff-only origin main
+sudo git config core.fileMode false
+sudo git pull --ff-only origin main
 sudo bash /var/www/finup/deploy/install-finup-updater.sh
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
-Pastikan konfigurasi Nginx memuat endpoint updater. Installer akan mencoba menambahkan include secara aman pada server block dengan root `/var/www/finup`. Verifikasi:
+Karena token lama pernah terlihat di log/chat, segera buat token baru:
 
 ```bash
-grep -n "finup-updater" /etc/nginx/sites-available/finup
-nginx -t
-systemctl reload nginx
+sudo bash /var/www/finup/deploy/rotate-finup-updater-token.sh
 ```
 
-## Update dari dalam FinUp Web
+Setelah langkah ini, pembaruan selanjutnya dapat dilakukan melalui menu **Lainnya → Pengaturan → Update FinUp Web**.
 
-1. Login ke FinUp Web.
-2. Buka **Lainnya → Pengaturan**.
-3. Pilih **Update FinUp Web**.
-4. FinUp otomatis membandingkan commit lokal dengan branch `main` GitHub.
-5. Jika pembaruan tersedia, masukkan token admin VPS.
-6. Tekan **Update sekarang**.
-7. Server melakukan fetch, validasi, fast-forward, memperbarui izin, menguji Nginx, lalu memuat ulang FinUp.
+## Update melalui menu FinUp
 
-Token tidak disimpan oleh browser. Pengguna tanpa token hanya dapat melihat status pembaruan.
+1. Push source baru ke branch `main` repository resmi.
+2. Buka **Lainnya → Pengaturan → Update FinUp Web**.
+3. Masukkan token administrator VPS.
+4. Tekan **Periksa status**.
+5. Bila pembaruan tersedia, tekan **Update sekarang**.
+
+Token hanya dipakai untuk permintaan saat itu dan tidak disimpan oleh FinUp Web.
 
 ## Update melalui SSH
-
-Cara yang direkomendasikan:
 
 ```bash
 sudo bash /var/www/finup/deploy/update-finup.sh
 ```
 
-Cara manual:
+Script hanya menerima fast-forward, memeriksa file wajib, memperbarui runtime updater, menguji Nginx, dan berhenti bila repository memiliki perubahan lokal atau file tidak terlacak.
+
+## Pemeriksaan layanan
+
+Health endpoint tidak memerlukan token:
 
 ```bash
-cd /var/www/finup
-git status
-git pull --ff-only origin main
-chown -R root:www-data /var/www/finup
-nginx -t
-systemctl reload nginx
+curl -i https://finup.gawelive.xyz/api/finup-update/health
 ```
 
-## Melihat atau mengganti token admin updater
-
-Lihat token:
+Status endpoint memerlukan token:
 
 ```bash
-sudo cat /etc/finup-web-updater.env
+set -a
+source /etc/finup-web-updater.env
+set +a
+curl -sS \
+  -H "X-FinUp-Update-Token: $FINUP_UPDATE_TOKEN" \
+  https://finup.gawelive.xyz/api/finup-update/status | python3 -m json.tool
 ```
 
-Ganti token:
+Periksa service dan log:
 
 ```bash
-NEW_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(36))')"
-sudo sed -i "s|^FINUP_UPDATE_TOKEN=.*|FINUP_UPDATE_TOKEN=$NEW_TOKEN|" /etc/finup-web-updater.env
-sudo systemctl restart finup-web-updater
-printf '%s\n' "$NEW_TOKEN"
+sudo systemctl status finup-web-updater --no-pager
+sudo ss -lntp | grep ':8731'
+sudo journalctl -u finup-web-updater -n 100 --no-pager
 ```
 
-## Pemeriksaan layanan updater
+## Repository harus bersih
 
-```bash
-systemctl status finup-web-updater --no-pager
-curl http://127.0.0.1:8731/api/finup-update/health
-curl http://127.0.0.1:8731/api/finup-update/status
-journalctl -u finup-web-updater -n 100 --no-pager
-```
+Jangan masukkan file berikut ke repository web:
 
-## Pemecahan masalah
+- APK, AAB, atau ZIP.
+- Keystore `.jks`/`.keystore`.
+- Password signing, `key.properties`, atau source-with-signing.
+- File `.env`, token VPS, private key, atau service-account Firebase.
+- Paket developer privat.
 
-### Menu menampilkan “Updater VPS belum aktif”
-
-```bash
-sudo bash /var/www/finup/deploy/install-finup-updater.sh
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-### Token ditolak
-
-Pastikan token disalin tanpa spasi dari `/etc/finup-web-updater.env`, lalu restart service:
-
-```bash
-sudo systemctl restart finup-web-updater
-```
-
-### Repository memiliki perubahan lokal
-
-Updater sengaja berhenti agar file server tidak tertimpa. Periksa:
-
-```bash
-cd /var/www/finup
-git status
-git diff
-```
-
-Simpan perubahan ke GitHub atau pulihkan file sebelum menjalankan update otomatis.
-
-### Tampilan lama masih muncul
-
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-Kemudian muat ulang penuh browser. `index.html` dan `version.json` dikirim dengan `no-cache`, sedangkan URL JavaScript memakai query revision.
-
-## Keamanan repository
-
-Repository web **tidak boleh** berisi:
-
-- Keystore Android (`.jks`, `.keystore`).
-- Password signing atau `key.properties`.
-- Source-With-Signing.
-- Paket Developer RAHASIA.
-- Service-account private key Firebase.
-- File `.env` server.
-- APK, AAB, atau arsip ZIP apa pun.
-
-Konfigurasi token updater disimpan di `/etc/finup-web-updater.env` di luar web root. APK, AAB, signing, dan keystore harus tetap berada pada paket privat terpisah.
+Paket repository GitHub yang disediakan untuk rilis ini sudah dipisahkan dari seluruh rahasia Android dan server.

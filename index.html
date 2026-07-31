@@ -47,7 +47,7 @@ html[data-theme="dark"] .modal-wrap,html[data-theme="dark"] .modal{background:va
 .quick-add-choice i{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin:0 auto 10px;border-radius:16px;font-size:25px;font-style:normal}.quick-add-choice.income i{background:var(--green-soft);color:var(--green2)}.quick-add-choice.expense i{background:var(--red-soft);color:var(--red)}
 .quick-add-cancel{width:100%;margin-top:13px}.idr-input-note{font-size:10px;color:var(--muted);margin-top:5px}
 
-/* FinUp v2.3.1 startup session gate and login keyboard handling. */
+/* FinUp v2.3.2 startup session gate and login keyboard handling. */
 .boot-screen{background:linear-gradient(155deg,var(--navy),var(--navy2));color:#fff;text-align:center;padding:28px}
 .boot-card{display:flex;flex-direction:column;align-items:center;gap:12px}
 .boot-card img{width:76px;height:76px;border-radius:22px;box-shadow:0 12px 34px rgba(0,0,0,.22)}
@@ -104,7 +104,7 @@ html[data-theme="dark"] .modal-wrap,html[data-theme="dark"] .modal{background:va
 <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = '2.3.1', VERSION_CODE = 29;
+const APP_VERSION = '2.3.2', VERSION_CODE = 30;
 const FIREBASE_CONFIG = Object.freeze({ projectId: 'finup-pribadi-a4ea7', apiKey: 'AIzaSyCQYZGVRQA0rUIrpC5xMpQeTum-pI-hTIE', storageBucket: 'finup-pribadi-a4ea7.firebasestorage.app', databaseURL: 'https://finup-pribadi-a4ea7-default-rtdb.asia-southeast1.firebasedatabase.app' });
 const KSES = 'finup_session_v1', COLLECTIONS = ['accounts', 'categories', 'transactions', 'budgets', 'recurring', 'goals', 'debts', 'activities'];
 let config = FIREBASE_CONFIG, session = null, authMode = 'login', page = 'dashboard', planningTab = 'budgets', filterType = 'all', busy = false, privacy = false, verificationCheckBusy = false, verificationTimer = null;
@@ -2462,10 +2462,10 @@ renderTransactions = function () {
 const infoContentV215Base = infoContent;
 infoContent = function (kind) {
     if (kind === 'about')
-        return `<div class="version-box"><img src="logo-mark.png"><h2>FinUp</h2><p>Atur uang, raih tujuan.</p><span class="badge badge-green">Versi ${APP_VERSION}</span><p>Version Code ${VERSION_CODE}</p></div><div class="legal"><h3>Pengembang</h3><p><b>${FINUP_DEVELOPER_V213}</b><br>${FINUP_SUPPORT_EMAIL_V213}</p><h3>Yang baru di v2.3.1</h3><ul><li>Layar login tidak lagi muncul sekejap ketika sesi Firebase masih aktif.</li><li>Menekan Enter/Done pada kolom kata sandi sekarang menjalankan proses login yang sama dengan tombol Masuk.</li><li>Sesi Firebase aplikasi Android dipindahkan dari localStorage ke penyimpanan terenkripsi berbasis Android Keystore.</li><li>Ditambahkan diagnostik lokal, pencatatan crash, perlindungan renderer WebView, dan pemeriksaan kesehatan data.</li><li>Daftar transaksi besar ditampilkan bertahap per 200 item agar navigasi tetap responsif.</li><li>Aksesibilitas keyboard, status pembaca layar, dan label tombol ditingkatkan.</li><li>Cookie pihak ketiga, cleartext traffic, SSL error, geolokasi, dan navigasi WebView diperketat.</li></ul><h3>Teknologi lisensi</h3><p>Private key tidak disimpan di APK. Aplikasi hanya membawa public key untuk memverifikasi token FUP2.</p></div>`;
+        return `<div class="version-box"><img src="logo-mark.png"><h2>FinUp</h2><p>Atur uang, raih tujuan.</p><span class="badge badge-green">Versi ${APP_VERSION}</span><p>Version Code ${VERSION_CODE}</p></div><div class="legal"><h3>Pengembang</h3><p><b>${FINUP_DEVELOPER_V213}</b><br>${FINUP_SUPPORT_EMAIL_V213}</p><h3>Yang baru di v2.3.2</h3><ul><li>Layar login tidak lagi muncul sekejap ketika sesi Firebase masih aktif.</li><li>Menekan Enter/Done pada kolom kata sandi sekarang menjalankan proses login yang sama dengan tombol Masuk.</li><li>Sesi Firebase aplikasi Android dipindahkan dari localStorage ke penyimpanan terenkripsi berbasis Android Keystore.</li><li>Ditambahkan diagnostik lokal, pencatatan crash, perlindungan renderer WebView, dan pemeriksaan kesehatan data.</li><li>Daftar transaksi besar ditampilkan bertahap per 200 item agar navigasi tetap responsif.</li><li>Aksesibilitas keyboard, status pembaca layar, dan label tombol ditingkatkan.</li><li>Cookie pihak ketiga, cleartext traffic, SSL error, geolokasi, dan navigasi WebView diperketat.</li></ul><h3>Teknologi lisensi</h3><p>Private key tidak disimpan di APK. Aplikasi hanya membawa public key untuk memverifikasi token FUP2.</p></div>`;
     let html = infoContentV215Base(kind);
     if (kind === 'tutorial')
-        html = html.replace('<div class="notice notice-info"><b>Mulai cepat:</b>', '<div class="notice notice-ok"><b>Pembaruan v2.3.1:</b> data keuangan dan konfigurasi akun kini tersinkron antarperangkat. PIN, biometrik, serta izin Android tetap khusus perangkat.</div><div class="notice notice-info"><b>Mulai cepat:</b>');
+        html = html.replace('<div class="notice notice-info"><b>Mulai cepat:</b>', '<div class="notice notice-ok"><b>Pembaruan v2.3.2:</b> data keuangan dan konfigurasi akun kini tersinkron antarperangkat. PIN, biometrik, serta izin Android tetap khusus perangkat.</div><div class="notice notice-info"><b>Mulai cepat:</b>');
     if (kind === 'privacy')
         html = html.replace('<h3>Penghapusan</h3>', '<h3>Diagnostik lokal</h3><p>FinUp menyimpan maksimal 40 catatan error teknis secara lokal untuk membantu pemeriksaan aplikasi. Catatan ini tidak dikirim otomatis ke pengembang, tidak sengaja memuat data keuangan, dan token yang terdeteksi disamarkan. Pengguna dapat menghapusnya melalui Diagnostik Aplikasi.</p><h3>Penghapusan</h3>');
     return html;
@@ -2501,12 +2501,13 @@ function handleStorageOriginMigrationV216() {
 }
 window.__finupStorageMigrationHandled = handleStorageOriginMigrationV216();
 </script>
-<script src="security-v230.js?v=2.3.1-r3"></script>
-<script src="realtime-v230.js?v=2.3.1-r3"></script>
-<script src="ui-v230.js?v=2.3.1-r3"></script>
-<script src="settings-sync-v230.js?v=2.3.1-r3"></script>
-<script src="quality-v230.js?v=2.3.1-r3"></script>
-<script src="web-adapter-v231.js?v=2.3.1-r4"></script>
+<script src="security-v230.js?v=2.3.2-r1"></script>
+<script src="realtime-v230.js?v=2.3.2-r1"></script>
+<script src="ui-v230.js?v=2.3.2-r1"></script>
+<script src="settings-sync-v230.js?v=2.3.2-r1"></script>
+<script src="quality-v230.js?v=2.3.2-r1"></script>
+<script src="hardening-v232.js?v=2.3.2-r1"></script>
+<script src="web-adapter-v232.js?v=2.3.2-r1"></script>
 <script>
 if (!window.__finupStorageMigrationHandled) {
     if (typeof installFullScreenNavigation === 'function') installFullScreenNavigation();

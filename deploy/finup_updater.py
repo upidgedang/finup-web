@@ -13,7 +13,9 @@ import os
 import pathlib
 import pwd
 import grp
+import shutil
 import subprocess
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -27,11 +29,20 @@ TOKEN = os.environ.get("FINUP_UPDATE_TOKEN", "")
 HOST = os.environ.get("FINUP_UPDATER_HOST", "127.0.0.1")
 PORT = int(os.environ.get("FINUP_UPDATER_PORT", "8731"))
 LOCK_FILE = pathlib.Path(os.environ.get("FINUP_UPDATE_LOCK", "/run/finup-web-updater.lock"))
+SERVICE_DIR = pathlib.Path("/opt/finup-web-updater")
+SERVICE_FILE = pathlib.Path("/etc/systemd/system/finup-web-updater.service")
+NGINX_SNIPPET = pathlib.Path("/etc/nginx/snippets/finup-updater-location.conf")
 STATUS_CACHE_SECONDS = 30
 MAX_FILE_SIZE = 25 * 1024 * 1024
+AUTH_WINDOW_SECONDS = 15 * 60
+AUTH_MAX_FAILURES = 5
+AUTH_LOCK_SECONDS = 15 * 60
 
 _status_cache: dict[str, Any] = {"at": 0.0, "value": None}
 _status_lock = threading.Lock()
+_auth_lock = threading.Lock()
+_auth_failures: dict[str, list[float]] = {}
+_auth_locked_until: dict[str, float] = {}
 
 
 def run(command: list[str], timeout: int = 120, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -87,7 +98,7 @@ def ensure_repository() -> str:
 def read_version() -> dict[str, Any]:
     version_file = APP_DIR / "version.json"
     if not version_file.is_file():
-        return {"versionName": "2.3.1", "versionCode": 29, "webRevision": 0}
+        return {"versionName": "2.3.2", "versionCode": 30, "webRevision": 0}
     try:
         value = json.loads(version_file.read_text(encoding="utf-8"))
         return value if isinstance(value, dict) else {}
@@ -108,7 +119,7 @@ def current_status(refresh: bool = False) -> dict[str, Any]:
         if not remote_line:
             raise RuntimeError(f"Branch {BRANCH} tidak ditemukan pada repository.")
         remote_commit = remote_line.split()[0]
-        dirty_output = git("status", "--porcelain", "--untracked-files=no")
+        dirty_output = git("status", "--porcelain", "--untracked-files=all")
         dirty_files = [line[3:] for line in dirty_output.splitlines() if len(line) > 3]
         dirty = bool(dirty_files)
         update_available = local_commit != remote_commit
@@ -134,7 +145,8 @@ def current_status(refresh: bool = False) -> dict[str, Any]:
 def validate_release_tree() -> dict[str, Any]:
     required = [
         "index.html",
-        "web-adapter-v231.js",
+        "web-adapter-v232.js",
+        "hardening-v232.js",
         "version.json",
         "logo-mark.png",
         "deploy/finup_updater.py",
@@ -171,8 +183,10 @@ def validate_release_tree() -> dict[str, Any]:
             raise RuntimeError(f"File terlalu besar pada web root: {path.relative_to(APP_DIR)}")
 
     index_text = (APP_DIR / "index.html").read_text(encoding="utf-8", errors="replace")
-    if "web-adapter-v231.js" not in index_text:
-        raise RuntimeError("Adapter web tidak dimuat oleh index.html.")
+    if "web-adapter-v232.js" not in index_text:
+        raise RuntimeError("Adapter web v2.3.2 tidak dimuat oleh index.html.")
+    if "hardening-v232.js" not in index_text:
+        raise RuntimeError("Hardening data v2.3.2 tidak dimuat oleh index.html.")
     return {"checkedFiles": checked, "version": version}
 
 
@@ -200,6 +214,48 @@ def reload_nginx() -> None:
     run(["systemctl", "reload", "nginx"], timeout=30)
 
 
+def deploy_runtime_files() -> dict[pathlib.Path, bytes | None]:
+    """Install updater runtime files outside the web root and return backups."""
+    sources = {
+        SERVICE_DIR / "finup_updater.py": APP_DIR / "deploy" / "finup_updater.py",
+        SERVICE_FILE: APP_DIR / "deploy" / "finup-web-updater.service",
+        NGINX_SNIPPET: APP_DIR / "deploy" / "nginx-finup-updater-location.conf",
+    }
+    backups: dict[pathlib.Path, bytes | None] = {}
+    SERVICE_DIR.mkdir(parents=True, exist_ok=True)
+    NGINX_SNIPPET.parent.mkdir(parents=True, exist_ok=True)
+    for target, source in sources.items():
+        if not source.is_file():
+            raise RuntimeError(f"File runtime updater tidak tersedia: {source.relative_to(APP_DIR)}")
+        backups[target] = target.read_bytes() if target.exists() else None
+        shutil.copyfile(source, target)
+        os.chmod(target, 0o755 if target.suffix in {".py", ".sh"} else 0o644)
+    run(["systemctl", "daemon-reload"], timeout=30)
+    return backups
+
+
+def restore_runtime_files(backups: dict[pathlib.Path, bytes | None]) -> None:
+    for target, content in backups.items():
+        try:
+            if content is None:
+                target.unlink(missing_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(content)
+                os.chmod(target, 0o755 if target.suffix in {".py", ".sh"} else 0o644)
+        except OSError:
+            pass
+    run(["systemctl", "daemon-reload"], timeout=30, check=False)
+
+
+def restart_runtime_after_response() -> None:
+    """Replace the current process with the newly installed updater code."""
+    time.sleep(0.8)
+    script = SERVICE_DIR / "finup_updater.py"
+    if script.is_file():
+        os.execv(sys.executable, [sys.executable, str(script)])
+
+
 def perform_update() -> dict[str, Any]:
     ensure_repository()
     LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -209,7 +265,7 @@ def perform_update() -> dict[str, Any]:
         except BlockingIOError as exc:
             raise RuntimeError("Proses pembaruan lain masih berjalan.") from exc
 
-        dirty = git("status", "--porcelain", "--untracked-files=no")
+        dirty = git("status", "--porcelain", "--untracked-files=all")
         if dirty:
             raise RuntimeError("Repository memiliki perubahan lokal. Selesaikan atau simpan perubahan tersebut sebelum update otomatis.")
 
@@ -231,12 +287,16 @@ def perform_update() -> dict[str, Any]:
             raise RuntimeError("Update bukan fast-forward. Periksa branch repository secara manual.")
 
         changed_files = git("diff", "--name-only", old_commit, remote_commit).splitlines()
+        runtime_backups: dict[pathlib.Path, bytes | None] = {}
         try:
             git("merge", "--ff-only", f"origin/{BRANCH}", timeout=180)
             validation = validate_release_tree()
             set_permissions()
+            runtime_backups = deploy_runtime_files()
             reload_nginx()
         except Exception:
+            if runtime_backups:
+                restore_runtime_files(runtime_backups)
             git("reset", "--hard", old_commit, timeout=60, check=False)
             try:
                 set_permissions()
@@ -257,12 +317,41 @@ def perform_update() -> dict[str, Any]:
             "changedFiles": changed_files[:200],
             "validation": validation,
             "localVersion": read_version(),
+            "restartUpdater": True,
             "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }
 
 
+def request_client_ip(handler: BaseHTTPRequestHandler) -> str:
+    forwarded = handler.headers.get("X-Real-IP", "").strip()
+    return forwarded or handler.client_address[0]
+
+
+def authorize_request(handler: BaseHTTPRequestHandler) -> tuple[bool, int, str]:
+    """Validate updater token and throttle repeated failures by client IP."""
+    client = request_client_ip(handler)
+    now = time.time()
+    supplied = handler.headers.get("X-FinUp-Update-Token", "")
+    with _auth_lock:
+        locked_until = float(_auth_locked_until.get(client, 0.0))
+        if locked_until > now:
+            return False, 429, f"Terlalu banyak percobaan token. Coba lagi dalam {max(1, int(locked_until - now))} detik."
+        if TOKEN and hmac.compare_digest(supplied, TOKEN):
+            _auth_failures.pop(client, None)
+            _auth_locked_until.pop(client, None)
+            return True, 200, ""
+        recent = [stamp for stamp in _auth_failures.get(client, []) if now - stamp < AUTH_WINDOW_SECONDS]
+        recent.append(now)
+        _auth_failures[client] = recent
+        if len(recent) >= AUTH_MAX_FAILURES:
+            _auth_locked_until[client] = now + AUTH_LOCK_SECONDS
+            _auth_failures.pop(client, None)
+            return False, 429, "Terlalu banyak percobaan token. Akses updater dikunci sementara selama 15 menit."
+    return False, 401, "Token admin update tidak valid."
+
+
 class Handler(BaseHTTPRequestHandler):
-    server_version = "FinUpUpdater/1.1"
+    server_version = "FinUpUpdater/1.2"
 
     def log_message(self, fmt: str, *args: Any) -> None:
         # Keep journald useful without logging request headers or tokens.
@@ -285,6 +374,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {"ok": True, "service": "finup-web-updater"})
                 return
             if path == "/api/finup-update/status":
+                authorized, code, message = authorize_request(self)
+                if not authorized:
+                    self.send_json(code, {"ok": False, "message": message})
+                    return
                 self.send_json(200, current_status(refresh="refresh=1" in self.path))
                 return
             self.send_json(404, {"ok": False, "message": "Endpoint tidak ditemukan."})
@@ -296,9 +389,9 @@ class Handler(BaseHTTPRequestHandler):
         if path != "/api/finup-update/run":
             self.send_json(404, {"ok": False, "message": "Endpoint tidak ditemukan."})
             return
-        supplied = self.headers.get("X-FinUp-Update-Token", "")
-        if not TOKEN or not hmac.compare_digest(supplied, TOKEN):
-            self.send_json(401, {"ok": False, "message": "Token admin update tidak valid."})
+        authorized, code, message = authorize_request(self)
+        if not authorized:
+            self.send_json(code, {"ok": False, "message": message})
             return
         length = int(self.headers.get("Content-Length", "0") or 0)
         if length > 4096:
@@ -307,7 +400,10 @@ class Handler(BaseHTTPRequestHandler):
         if length:
             self.rfile.read(length)
         try:
-            self.send_json(200, perform_update())
+            payload = perform_update()
+            self.send_json(200, payload)
+            if payload.get("updated") and payload.get("restartUpdater"):
+                threading.Thread(target=restart_runtime_after_response, daemon=True).start()
         except Exception as exc:
             self.send_json(500, {"ok": False, "message": str(exc)[:1200]})
 

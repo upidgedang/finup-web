@@ -89,4 +89,5 @@ systemctl reload nginx
 printf '\nFinUp Web Updater berhasil dipasang.\n'
 printf 'Token admin update (simpan rahasia):\n%s\n\n' "$TOKEN"
 printf 'Token juga tersimpan di %s dengan izin 600.\n' "$ENV_FILE"
-printf 'Uji service: curl http://127.0.0.1:8731/api/finup-update/status\n'
+printf 'Uji health: curl http://127.0.0.1:8731/api/finup-update/health\n'
+printf 'Status memerlukan header X-FinUp-Update-Token; lihat README.md.\n'

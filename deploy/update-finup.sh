@@ -10,7 +10,7 @@ if [[ "${EUID}" -ne 0 ]]; then
 fi
 cd "$APP_DIR"
 
-if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
   echo "Update dibatalkan: ada perubahan lokal pada file yang dilacak Git." >&2
   exit 1
 fi
@@ -31,7 +31,7 @@ fi
 
 git merge --ff-only "origin/$BRANCH"
 
-for file in index.html web-adapter-v231.js version.json deploy/finup_updater.py; do
+for file in index.html web-adapter-v232.js hardening-v232.js version.json deploy/finup_updater.py; do
   [[ -s "$file" ]] || { echo "Validasi gagal: $file tidak tersedia." >&2; git reset --hard "$OLD_COMMIT"; exit 1; }
 done
 
