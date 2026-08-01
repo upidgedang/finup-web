@@ -1,6 +1,6 @@
-# Upload FinUp Web v2.3.2 ke GitHub
+# Upload FinUp Web v2.3.3 ke GitHub
 
-Gunakan paket `FinUp-Web-GitHub-Repository-CLEAN-v2.3.2.zip`.
+Gunakan paket `FinUp-Web-GitHub-Repository-CLEAN-v2.3.3.zip`.
 
 1. Ekstrak ZIP.
 2. Upload **isi folder hasil ekstrak**, bukan ZIP-nya, ke root repository `upidgedang/finup-web` branch `main`.

@@ -46,7 +46,7 @@ Periksa file wajib:
 
 ```bash
 for file in \
-  index.html web-adapter-v232.js hardening-v232.js version.json \
+  index.html web-adapter-v232.js hardening-v232.js report-v233.js version.json \
   deploy/finup_updater.py deploy/install-finup-updater.sh
  do
   sudo test -s "/var/www/finup/$file" && echo "OK: $file" || echo "TIDAK ADA: $file"

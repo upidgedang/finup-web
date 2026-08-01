@@ -1,4 +1,4 @@
-/* FinUp Web v2.3.2 — browser adapter revision 1 (2026-07-31).
+/* FinUp Web v2.3.3 — browser adapter revision 1 (2026-08-01).
  * Keeps the shared FinUp application core aligned with Android while replacing
  * Android-only bridges and labels with browser-native behavior, including a secured VPS updater.
  */
@@ -166,21 +166,11 @@
     }
 
     function openPrintableReport() {
-        var name = 'FinUp-laporan-' + reportFilters.from + '-' + reportFilters.to;
-        var popup = window.open('', '_blank');
-        if (!popup) {
-            toast('Popup diblokir browser. Izinkan popup untuk mencetak laporan.', true);
-            return false;
+        if (window.FinUpReportV233 && typeof window.FinUpReportV233.openPrintableReport === 'function') {
+            return window.FinUpReportV233.openPrintableReport();
         }
-        var content = escapeHtml(reportText());
-        popup.document.open();
-        popup.document.write('<!doctype html><html lang="id"><head><meta charset="utf-8"><title>'
-            + escapeHtml(name)
-            + '</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#17212b}h1{font-size:22px;margin:0 0 8px}.hint{background:#eef7f3;padding:10px 12px;border-radius:8px;margin:0 0 18px;font-size:12px}.report{white-space:pre-wrap;line-height:1.55;font-size:12px}@media print{.hint{display:none}body{margin:12mm}}</style></head><body>'
-            + '<h1>Laporan Keuangan FinUp</h1><p class="hint">Pilih <b>Simpan sebagai PDF</b> pada dialog cetak browser.</p><div class="report">'
-            + content + '</div><script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});<\/script></body></html>');
-        popup.document.close();
-        return true;
+        toast('Mesin template laporan belum tersedia. Muat ulang FinUp Web.', true);
+        return false;
     }
 
     function settingsNotice() {
@@ -221,10 +211,10 @@
 
     window.exportCsvReport = function () {
         try {
-            var filename = 'FinUp-laporan-' + reportFilters.from + '-' + reportFilters.to + '.csv';
+            var filename = 'FinUp-laporan-profesional-' + reportFilters.from + '-' + reportFilters.to + '.csv';
             downloadText(filename, 'text/csv;charset=utf-8', reportCsv());
             if (typeof recordActivity === 'function') recordActivity('report_csv', 'Laporan CSV diunduh melalui browser.', { from: reportFilters.from, to: reportFilters.to });
-            toast('Laporan CSV berhasil diunduh.');
+            toast('Laporan CSV profesional berhasil diunduh.');
         } catch (error) {
             if (typeof baseExportCsvReport === 'function' && window.FinUpAndroid) return baseExportCsvReport.apply(this, arguments);
             toast('Laporan CSV belum dapat dibuat.', true);
@@ -244,7 +234,7 @@
 
     window.renderReports = function () {
         var html = typeof baseRenderReports === 'function' ? baseRenderReports.apply(this, arguments) : '';
-        return String(html).replace('Ekspor PDF</button>', 'Cetak / Simpan PDF</button>');
+        return String(html).replace('Ekspor CSV</button>', 'CSV untuk Excel</button>').replace('Ekspor PDF</button>', 'PDF Profesional</button>').replace('Cetak / Simpan PDF</button>', 'PDF Profesional</button>');
     };
 
     var FINUP_WEB_UPDATE_API = '/api/finup-update';
@@ -478,7 +468,7 @@
             return '<div class="version-box"><img src="logo-mark.png"><h2>FinUp Web</h2><p>Atur uang, raih tujuan.</p><span class="badge badge-green">Versi ' + APP_VERSION + '</span><p>Version Code ' + VERSION_CODE + '</p></div>'
                 + '<div class="legal"><h3>Pengembang</h3><p><b>' + esc(typeof FINUP_DEVELOPER_V213 !== 'undefined' ? FINUP_DEVELOPER_V213 : 'FinUp') + '</b><br>'
                 + esc(typeof FINUP_SUPPORT_EMAIL_V213 !== 'undefined' ? FINUP_SUPPORT_EMAIL_V213 : 'upidgedang@gmail.com') + '</p>'
-                + '<h3>Penyempurnaan Web v2.3.2 Revision 1</h3><ul><li>Sesi login memakai penyimpanan tab secara default; penyimpanan persisten hanya aktif bila pengguna memilih Tetap masuk.</li><li>Impor backup divalidasi per koleksi, membatasi ukuran dan jumlah record, serta membuat backup otomatis sebelum mengganti data.</li><li>Status dan pemasangan update hanya dapat diakses dengan token administrator VPS serta dilindungi pembatasan percobaan.</li><li>Backup JSON, impor JSON, CSV, dan cetak PDF menggunakan fitur browser.</li><li>Pengingat, keamanan, dan petunjuk hanya menampilkan fungsi yang tersedia pada FinUp Web.</li></ul>'
+                + '<h3>Penyempurnaan Web v2.3.3 Revision 1</h3><ul><li>Sesi login memakai penyimpanan tab secara default; penyimpanan persisten hanya aktif bila pengguna memilih Tetap masuk.</li><li>Impor backup divalidasi per koleksi, membatasi ukuran dan jumlah record, serta membuat backup otomatis sebelum mengganti data.</li><li>Status dan pemasangan update hanya dapat diakses dengan token administrator VPS serta dilindungi pembatasan percobaan.</li><li>Backup JSON, impor JSON, CSV siap Excel, dan PDF profesional menggunakan fitur browser.</li><li>Pengingat, keamanan, dan petunjuk hanya menampilkan fungsi yang tersedia pada FinUp Web.</li></ul>'
                 + '<h3>Teknologi</h3><p>Firebase Authentication, Cloud Firestore, dan Realtime Database digunakan berdasarkan UID pengguna. Data inti dan aturan sinkronisasi sama dengan aplikasi Android.</p></div>';
         }
         if (kind === 'tutorial') {

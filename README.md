@@ -1,4 +1,4 @@
-# FinUp Web v2.3.2 — Web Revision 1
+# FinUp Web v2.3.3 — Web Revision 1
 
 FinUp Web adalah versi browser FinUp yang menggunakan Firebase Authentication, Cloud Firestore, dan Realtime Database yang sama dengan aplikasi Android.
 
@@ -8,7 +8,12 @@ FinUp Web adalah versi browser FinUp yang menggunakan Firebase Authentication, C
 - Web root: `/var/www/finup`
 - Updater lokal: `127.0.0.1:8731`
 
-## Perubahan v2.3.2
+## Perubahan v2.3.3
+
+- PDF memakai template A4 profesional dengan identitas FinUp, periode, tanggal pembuatan, ringkasan arus kas, saldo akun, kategori pengeluaran, tabel transaksi, dan nomor halaman.
+- CSV disusun untuk Excel dengan metadata laporan, ringkasan, saldo akun, kategori, serta kolom pemasukan, pengeluaran, dan transfer yang terpisah.
+- Hasil cetak Web menggunakan template yang sama dan dapat dipilih sebagai **Simpan sebagai PDF** dari dialog browser.
+- Source Web dan Android memakai mesin laporan bersama `report-v233.js`.
 
 - Sesi web memakai `sessionStorage` secara default. Penyimpanan persisten hanya dipakai bila pengguna memilih **Tetap masuk di browser ini**.
 - Sesi lama dari Revision 4 dimigrasikan dari penyimpanan persisten ke penyimpanan tab apabila pengguna belum memilih untuk tetap masuk.

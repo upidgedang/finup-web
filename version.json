@@ -1,9 +1,9 @@
 {
   "app": "FinUp Web",
-  "versionName": "2.3.2",
-  "versionCode": 30,
+  "versionName": "2.3.3",
+  "versionCode": 31,
   "webRevision": 1,
-  "releaseDate": "2026-07-31",
+  "releaseDate": "2026-08-01",
   "repository": "https://github.com/upidgedang/finup-web.git",
   "branch": "main"
 }

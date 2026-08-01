@@ -47,7 +47,7 @@ function makeContext(android = false) {
     localStorage: local, sessionStorage: sessionStore,
     document, window: null, KSES: 'finup_session_v1',
     FinUpAndroid: android ? { exportJson() {} } : null,
-    APP_VERSION: '2.3.2', VERSION_CODE: 30,
+    APP_VERSION: '2.3.3', VERSION_CODE: 31,
     FINUP_DEVELOPER_V213: 'Upid', FINUP_SUPPORT_EMAIL_V213: 'support@example.com',
     reportFilters: { from: '2026-07-01', to: '2026-07-31' },
     v2Settings: { autoLockMinutes: 1, notificationDays: 3 }, privacy: false,
@@ -81,7 +81,7 @@ function makeContext(android = false) {
     saveJson: (key, value) => local.setItem(key, JSON.stringify(value)),
     setTimeout: fn => { fn(); return 1; },
     open: () => ({ document: { open(){}, write(){}, close(){} } }),
-    fetch: (url, options) => { fetchCalls.push({url, options}); return Promise.resolve({ok:true,status:200,text:async()=>JSON.stringify({ok:true,status:'up_to_date',localCommit:'123456789',remoteCommit:'123456789',updateAvailable:false,dirty:false,localVersion:{versionName:'2.3.2',webRevision:1}})}); }
+    fetch: (url, options) => { fetchCalls.push({url, options}); return Promise.resolve({ok:true,status:200,text:async()=>JSON.stringify({ok:true,status:'up_to_date',localCommit:'123456789',remoteCommit:'123456789',updateAvailable:false,dirty:false,localVersion:{versionName:'2.3.3',webRevision:1}})}); }
   };
   context.window = context;
   context.window.setTimeout = context.setTimeout;
@@ -123,9 +123,9 @@ function makeContext(android = false) {
   c.exportData();
   assert.strictEqual(env.downloads[0].filename, 'FinUp-backup-2026-07-31.json');
   c.exportCsvReport();
-  assert.strictEqual(env.downloads[1].filename, 'FinUp-laporan-2026-07-01-2026-07-31.csv');
-  assert(c.renderReports().includes('Cetak / Simpan PDF'));
-  assert(c.infoContent('about').includes('v2.3.2 Revision 1'));
+  assert.strictEqual(env.downloads[1].filename, 'FinUp-laporan-profesional-2026-07-01-2026-07-31.csv');
+  assert(c.renderReports().includes('PDF Profesional'));
+  assert(c.infoContent('about').includes('v2.3.3 Revision 1'));
 
   const android = makeContext(true);
   assert.strictEqual(android.context.__finupWebAdapterV232, undefined);

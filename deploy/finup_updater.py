@@ -98,7 +98,7 @@ def ensure_repository() -> str:
 def read_version() -> dict[str, Any]:
     version_file = APP_DIR / "version.json"
     if not version_file.is_file():
-        return {"versionName": "2.3.2", "versionCode": 30, "webRevision": 0}
+        return {"versionName": "2.3.3", "versionCode": 31, "webRevision": 0}
     try:
         value = json.loads(version_file.read_text(encoding="utf-8"))
         return value if isinstance(value, dict) else {}
@@ -147,6 +147,7 @@ def validate_release_tree() -> dict[str, Any]:
         "index.html",
         "web-adapter-v232.js",
         "hardening-v232.js",
+        "report-v233.js",
         "version.json",
         "logo-mark.png",
         "deploy/finup_updater.py",
@@ -184,9 +185,11 @@ def validate_release_tree() -> dict[str, Any]:
 
     index_text = (APP_DIR / "index.html").read_text(encoding="utf-8", errors="replace")
     if "web-adapter-v232.js" not in index_text:
-        raise RuntimeError("Adapter web v2.3.2 tidak dimuat oleh index.html.")
+        raise RuntimeError("Adapter web v2.3.3 tidak dimuat oleh index.html.")
     if "hardening-v232.js" not in index_text:
-        raise RuntimeError("Hardening data v2.3.2 tidak dimuat oleh index.html.")
+        raise RuntimeError("Hardening data v2.3.3 tidak dimuat oleh index.html.")
+    if "report-v233.js" not in index_text:
+        raise RuntimeError("Mesin laporan profesional v2.3.3 tidak dimuat oleh index.html.")
     return {"checkedFiles": checked, "version": version}
 
 

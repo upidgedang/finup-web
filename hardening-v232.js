@@ -1,4 +1,4 @@
-/* FinUp v2.3.2 shared data hardening.
+/* FinUp v2.3.3 shared data hardening.
  * Loaded by Android and Web after the legacy core so the final runtime uses
  * validated imports without changing Firebase collection compatibility.
  */
@@ -318,12 +318,12 @@
     window.infoContent = function (kind) {
         if (kind === 'about') {
             return '<div class="version-box"><img src="logo-mark.png"><h2>FinUp</h2><p>Atur uang, raih tujuan.</p><span class="badge badge-green">Versi ' + esc(APP_VERSION) + '</span><p>Version Code ' + esc(VERSION_CODE) + '</p></div>'
-                + '<div class="legal"><h3>Yang baru di v2.3.2</h3><ul>'
-                + '<li>Impor backup divalidasi per koleksi, membatasi ukuran dan jumlah record, serta menolak struktur berbahaya.</li>'
-                + '<li>Ringkasan isi backup ditampilkan sebelum proses Gabungkan atau Ganti seluruh data.</li>'
-                + '<li>Backup otomatis dibuat sebelum seluruh data diganti.</li>'
-                + '<li>Field asing, nilai tidak valid, tanggal rusak, dan ID tidak aman tidak dimasukkan ke data aktif.</li>'
-                + '<li>Pengujian regresi ditambahkan untuk validasi import dan resolusi fungsi inti.</li>'
+                + '<div class="legal"><h3>Yang baru di v2.3.3</h3><ul>'
+                + '<li>PDF memakai template profesional dengan ringkasan, saldo akun, kategori, dan tabel transaksi.</li>'
+                + '<li>CSV memiliki susunan laporan, angka siap dihitung di Excel, dan kolom pemasukan/pengeluaran terpisah.</li>'
+                + '<li>Tombol kembali Android tidak langsung menutup aplikasi dari Dashboard.</li>'
+                + '<li>Tekan kembali dua kali dari Dashboard untuk keluar ke Home Android, sehingga aplikasi tidak tertutup karena satu sentuhan yang tidak sengaja.</li>'
+                + '<li>Validasi impor backup dan perlindungan data v2.3.2 tetap dipertahankan.</li>'
                 + '</ul><h3>Teknologi lisensi</h3><p>Private key tidak disimpan di APK. Aplikasi hanya membawa public key untuk memverifikasi token FUP2.</p></div>';
         }
         return baseInfoContentV232.apply(this, arguments);

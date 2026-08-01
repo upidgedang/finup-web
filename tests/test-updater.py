@@ -33,9 +33,10 @@ with tempfile.TemporaryDirectory() as temp_raw:
     run('git', 'config', 'user.name', 'FinUp Test', cwd=source)
 
     files = {
-        'index.html': '<script src="hardening-v232.js"></script><script src="web-adapter-v232.js"></script>',
+        'index.html': '<script src="hardening-v232.js"></script><script src="report-v233.js"></script><script src="web-adapter-v232.js"></script>',
         'web-adapter-v232.js': 'window.__test=true;',
         'hardening-v232.js': 'window.__hardening=true;',
+        'report-v233.js': 'window.__report=true;',
         'logo-mark.png': 'png',
         'deploy/finup_updater.py': '#!/usr/bin/env python3\n',
     }
@@ -44,7 +45,7 @@ with tempfile.TemporaryDirectory() as temp_raw:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
     (source / 'version.json').write_text(json.dumps({
-        'versionName': '2.3.2', 'versionCode': 30, 'webRevision': 1,
+        'versionName': '2.3.3', 'versionCode': 31, 'webRevision': 1,
         'repository': 'https://github.com/upidgedang/finup-web.git', 'branch': 'main'
     }))
     run('git', 'add', '.', cwd=source)
