@@ -1,8 +1,8 @@
-# FinUp Web v2.3.3 — Revision 1
+# FinUp Web v2.3.3 — Responsive Revision 2
 
 FinUp Web v2.3.3 menyempurnakan hasil laporan tanpa mengubah struktur data Firebase atau repository resmi.
 
-## Perubahan
+## Perubahan laporan
 
 - Template laporan A4 profesional untuk cetak atau Simpan sebagai PDF.
 - Header FinUp, periode laporan, waktu pembuatan, dan identitas akun.
@@ -22,3 +22,10 @@ sudo bash deploy/update-finup.sh
 ```
 
 Tidak ada perubahan pada port StreamFlow `7575` maupun server block `gawelive.xyz`.
+
+## Responsive Revision 2
+
+- Desktop, tablet, mobile, portrait, dan landscape.
+- Tidak ada overflow horizontal pada layout utama.
+- Login dan halaman penuh dapat digulir pada layar landscape pendek.
+- Grid menyesuaikan ruang yang tersedia tanpa mengubah data atau fitur.

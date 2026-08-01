@@ -1,4 +1,4 @@
-# FinUp Web v2.3.3 — Web Revision 1
+# FinUp Web v2.3.3 — Web Revision 2
 
 FinUp Web adalah versi browser FinUp yang menggunakan Firebase Authentication, Cloud Firestore, dan Realtime Database yang sama dengan aplikasi Android.
 
@@ -7,6 +7,15 @@ FinUp Web adalah versi browser FinUp yang menggunakan Firebase Authentication, C
 - Domain contoh produksi: `https://finup.gawelive.xyz`
 - Web root: `/var/www/finup`
 - Updater lokal: `127.0.0.1:8731`
+
+
+## Responsive Revision 2
+
+- Layout menyesuaikan desktop, laptop, tablet, dan ponsel.
+- Mendukung portrait, landscape, split-screen, dan layar dengan tinggi terbatas.
+- Grid, filter, form, modal, grafik, daftar, navigasi, serta tombol tidak melebar keluar viewport.
+- Tablet portrait memakai susunan satu kolom yang lebih nyaman; tablet landscape dan desktop memakai susunan multikolom.
+- Zoom browser diizinkan dan keyboard virtual dapat mengecilkan area konten pada browser yang mendukung.
 
 ## Perubahan v2.3.3
 

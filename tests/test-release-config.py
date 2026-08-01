@@ -11,7 +11,7 @@ policy = match.group(1)
 connect = next((part.strip() for part in policy.split(';') if part.strip().startswith('connect-src ')), '')
 assert "'self'" in connect.split(), 'connect-src must allow same-origin updater API'
 version = json.loads((ROOT / 'version.json').read_text(encoding='utf-8'))
-assert version['webRevision'] == 1
+assert version['webRevision'] == 2
 assert version['versionName'] == '2.3.3'
 assert version['versionCode'] == 31
 assert 'hardening-v232.js?v=2.3.3-r1' in index
@@ -25,4 +25,7 @@ assert 'authorize_request' in updater
 nginx = (ROOT / 'deploy' / 'nginx-finup.conf.example').read_text(encoding='utf-8')
 assert "frame-ancestors 'none'" in nginx
 assert 'report-v233.js?v=2.3.3-r1' in index
-print('PASS: v2.3.3 metadata, CSP, hardening modules, updater throttling, Git mode handling')
+assert 'responsive-v233-r2.css' in index
+assert 'interactive-widget=resizes-content' in index
+assert 'user-scalable=no' not in index
+print('PASS: v2.3.3 web revision 2 metadata, CSP, responsive layer, updater throttling, Git mode handling')
