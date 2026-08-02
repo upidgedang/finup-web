@@ -117,10 +117,12 @@
 
     function sanitizeReportFiltersV230(value) {
         var today = typeof localDate === 'function' ? localDate() : new Date().toISOString().slice(0, 10);
-        var yearStart = today.slice(0, 4) + '-01-01';
+        var monthStart = today.slice(0, 8) + '01';
         var source = value && Object.prototype.toString.call(value) === '[object Object]' ? value : {};
+        var modes = ['today','yesterday','last7','monthToDate','previousMonth','last30','yearToDate','previousYear','custom'];
         var result = {
-            from: validDateV230(source.from, yearStart),
+            dateMode: allowedStringV230(source.dateMode, modes, ''),
+            from: validDateV230(source.from, monthStart),
             to: validDateV230(source.to, today)
         };
         if (result.from > result.to) {

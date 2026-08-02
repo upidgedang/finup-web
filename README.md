@@ -1,4 +1,15 @@
-# FinUp Web v2.3.3 — Web Revision 2
+# FinUp Web v2.3.9 — Web Revision 1
+
+Header utama dan header halaman fitur kini tetap terlihat saat konten digulir. Tata letak otomatis memberi ruang sesuai tinggi header agar konten tidak tertutup pada mobile, tablet, desktop, portrait, dan landscape.
+
+
+## Perubahan v2.3.9
+
+- Header utama tetap terlihat saat Dashboard dan modul digulir.
+- Header halaman fitur tetap menempel di bagian atas kontainer gulir.
+- Tinggi header dihitung otomatis agar konten tidak tertutup.
+- Safe area, portrait, landscape, mobile, tablet, dan desktop tetap didukung.
+- Perbaikan scroll v2.3.8 dan mesin PDF tunggal v2.3.7 tetap dipertahankan.
 
 FinUp Web adalah versi browser FinUp yang menggunakan Firebase Authentication, Cloud Firestore, dan Realtime Database yang sama dengan aplikasi Android.
 
@@ -8,6 +19,24 @@ FinUp Web adalah versi browser FinUp yang menggunakan Firebase Authentication, C
 - Web root: `/var/www/finup`
 - Updater lokal: `127.0.0.1:8731`
 
+
+
+## Perubahan v2.3.6
+
+- Konflik sinkronisasi yang berhasil diselesaikan otomatis tidak lagi menampilkan toast merah.
+- Versi cloud tetap diterapkan dan salinan lokal tetap disimpan di riwayat konflik.
+- Konflik identik dalam waktu 24 jam digabung menjadi satu catatan dengan `repeatCount`.
+- Riwayat konflik dibatasi 100 catatan terbaru agar penyimpanan lokal tidak membengkak.
+- Peringatan sinkronisasi hanya dipakai untuk kegagalan nyata seperti koneksi, izin Firebase, atau data yang belum dapat dikirim.
+
+## Perubahan v2.3.5
+
+- Periode pratinjau dan file ekspor selalu mengikuti periode yang dipilih.
+- Mode periode disimpan dan disinkronkan tanpa kembali otomatis ke Bulan ini.
+- Rentang lama tanpa `dateMode` dimigrasikan berdasarkan tanggal awal/akhir.
+- Pratinjau A4 memakai canvas tetap yang diskalakan, sehingga mobile tidak mengubah susunan halaman.
+- Saldo akun, kategori, dan transaksi dipaginasi sebelum footer.
+- PDF Android menyediakan area footer khusus dan mengulang header tabel di halaman lanjutan.
 
 ## Responsive Revision 2
 
@@ -110,9 +139,9 @@ sudo systemctl reload nginx
 
 Tambahkan `finup.gawelive.xyz` pada **Firebase Authentication → Settings → Authorized domains**.
 
-## Upgrade dari Web Revision 4 ke v2.3.2
+## Pembaruan ke v2.3.6
 
-Revision 4 belum dapat mengganti runtime updater-nya sendiri. Setelah source v2.3.2 sudah dipush ke GitHub, jalankan satu kali melalui SSH:
+Setelah source v2.3.6 dipush ke GitHub, pembaruan dapat dilakukan melalui menu updater. Untuk memastikan source dan runtime updater di VPS sama dengan rilis terbaru, jalankan melalui SSH:
 
 ```bash
 cd /var/www/finup

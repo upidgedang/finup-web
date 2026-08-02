@@ -9,7 +9,7 @@ const elements = { modalRoot: { innerHTML: '' } };
 const context = {
   console, JSON, String, Number, Boolean, Array, Object, Date, Math, Map, Set, Promise,
   Blob: class { constructor(parts){ this.size=Buffer.byteLength(parts.join('')); } },
-  window: null, VERSION_CODE: 31, APP_VERSION: '2.3.3',
+  window: null, VERSION_CODE: 37, APP_VERSION: '2.3.9',
   data: {accounts:[],categories:[],transactions:[],budgets:[],recurring:[],goals:[],debts:[],activities:[]},
   pendingImport: null,
   backupJsonText: () => '{"app":"FinUp","data":{"accounts":[],"transactions":[]}}',
@@ -57,5 +57,5 @@ assert(elements.modalRoot.innerHTML.includes('Data valid'));
 context.applyImportedData('replace');
 assert.strictEqual(context.applied,'replace');
 assert(context.download && context.download.name.includes('sebelum-impor'));
-assert(context.infoContent('about').includes('Yang baru di v2.3.3'));
+assert(context.infoContent('about').includes('Yang baru di v2.3.9'));
 console.log('PASS: backup validation, limits, field filtering, pre-import backup, about release notes');

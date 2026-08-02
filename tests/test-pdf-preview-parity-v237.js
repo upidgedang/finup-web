@@ -1,0 +1,17 @@
+'use strict';
+const fs=require('fs'),vm=require('vm'),path=require('path'),assert=require('assert');
+const source=fs.readFileSync(path.resolve(__dirname,'../report-v233.js'),'utf8');
+const context={console,Intl,Date,String,Number,Array,Object,Math,JSON,window:null};context.window=context;vm.createContext(context);vm.runInContext(source,context);
+const report={period:{from:'2026-07-01',to:'2026-07-31',fromFormatted:'01 Jul 2026',toFormatted:'31 Jul 2026'},generatedAtFormatted:'01 Agustus 2026 pukul 19.40',owner:'user@example.com',totals:{income:1950000,expense:1773000,net:177000,balance:463000,incomeFormatted:'Rp 1.950.000',expenseFormatted:'Rp 1.773.000',netFormatted:'Rp 177.000',balanceFormatted:'Rp 463.000'},accounts:Array.from({length:8},(_,i)=>({name:'Akun '+(i+1),type:'Bank/Tabungan',balance:0,balanceFormatted:'Rp 0'})),categories:Array.from({length:7},(_,i)=>({name:'Kategori '+(i+1),amount:100000,amountFormatted:'Rp 100.000',percentage:14.2})),transactions:Array.from({length:42},(_,i)=>({number:i+1,date:'2026-07-21',dateFormatted:'21 Jul 2026',type:i%3===0?'income':'expense',typeLabel:i%3===0?'Pemasukan':'Pengeluaran',category:'Makanan & Minuman',sourceAccount:'Tunai',destinationAccount:'',note:'Catatan transaksi '+(i+1),amount:10000,amountFormatted:'Rp 10.000'}))};
+const pkg=context.FinUpReportV233.buildPdfPreviewPackage(report);
+assert(pkg.pdf.startsWith('%PDF-1.4'));
+const count=Number(pkg.pdf.match(/\/Type \/Pages \/Kids \[[^\]]*\] \/Count (\d+)/)[1]);
+assert.strictEqual(pkg.pages.length,count,'preview page count must equal final PDF page count');
+assert.strictEqual(pkg.pageWidth,595);assert.strictEqual(pkg.pageHeight,842);
+assert(pkg.pages.every(p=>Array.isArray(p)&&p.some(op=>op.type==='text')));
+const pageText=pkg.pages.map(p=>p.filter(op=>op.type==='text').map(op=>op.value).join('|'));
+assert(pageText[0].includes('SALDO AKUN'));
+assert(pageText.some(t=>t.includes('RINCIAN TRANSAKSI')));
+const second=context.FinUpReportV233.buildPdfPreviewPackage(report);
+assert.strictEqual(second.pdf,pkg.pdf,'same report snapshot must generate the same PDF bytes');
+console.log('PASS: preview operations and exported PDF share one page layout and identical bytes');

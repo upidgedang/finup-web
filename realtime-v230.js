@@ -1,5 +1,5 @@
 /*
- * FinUp v2.3.0 - Firestore + Realtime Database hybrid synchronization layer.
+ * FinUp v2.3.9 - Firestore + Realtime Database hybrid synchronization layer.
  *
  * This file intentionally wraps the existing v2.1.x REST synchronizer so the
  * application can fall back to the previous behaviour when the Firebase SDK
@@ -28,7 +28,8 @@
     var LICENSE_REFRESH_INTERVAL_V223 = 6 * 60 * 60 * 1000;
     var firestorePersistenceReady = false;
     var deviceId = '';
-    var conflictToastShownAt = 0;
+    var CONFLICT_HISTORY_LIMIT_V236 = 100;
+    var CONFLICT_DEDUPE_WINDOW_V236 = 24 * 60 * 60 * 1000;
     var syncPromise = null;
     var originalFunctions = {};
     var remoteBaselinesV223 = {};
@@ -362,26 +363,96 @@
         }, REALTIME_RENDER_DELAY_V223);
     }
 
+    function hashConflictTextV236(text) {
+        // Compact deterministic FNV-1a style fingerprint. It is only used for
+        // local deduplication, not as a security primitive.
+        var hash = 2166136261;
+        text = String(text || '');
+        for (var i = 0; i < text.length; i += 1) {
+            hash ^= text.charCodeAt(i);
+            hash = Math.imul(hash, 16777619);
+        }
+        return ('00000000' + (hash >>> 0).toString(16)).slice(-8);
+    }
+
+    function conflictFingerprintV236(collection, id, localPayload, remotePayload, conflictingKeys) {
+        var keys = Array.isArray(conflictingKeys) ? conflictingKeys.slice(0, 30).map(String).sort() : [];
+        return hashConflictTextV236(stableJsonV223({
+            collection: String(collection || ''),
+            documentId: String(id || ''),
+            conflictingKeys: keys,
+            local: comparableValueV223(localPayload || {}),
+            remote: comparableValueV223(remotePayload || {})
+        }));
+    }
+
     function archiveConflict(collection, id, localPayload, remotePayload, conflictingKeys) {
         var key = uidKey('conflicts_v223');
         var conflicts = loadJson(key, []);
-        conflicts.push({
-            id: rid(),
-            collection: collection,
-            documentId: id,
-            detectedAt: nowIso(),
-            conflictingKeys: Array.isArray(conflictingKeys) ? conflictingKeys.slice(0, 30) : [],
-            local: stripUndefined(localPayload || {}),
-            remote: stripUndefined(remotePayload || {})
-        });
-        if (conflicts.length > 100) conflicts = conflicts.slice(conflicts.length - 100);
-        saveJson(key, conflicts);
-        // Only a genuine overlapping edit is surfaced. Self-echoes, identical
-        // payloads, and edits to different fields are resolved silently.
-        if (Date.now() - conflictToastShownAt > 15000) {
-            conflictToastShownAt = Date.now();
-            toast('Data yang sama diedit di dua perangkat. Versi cloud dipakai; salinan perubahan lokal disimpan di riwayat konflik.', true);
+        if (!Array.isArray(conflicts)) conflicts = [];
+
+        var detectedAt = nowIso();
+        var nowMs = Date.now();
+        var normalizedKeys = Array.isArray(conflictingKeys)
+            ? conflictingKeys.slice(0, 30).map(String).sort()
+            : [];
+        var fingerprint = conflictFingerprintV236(collection, id, localPayload, remotePayload, normalizedKeys);
+        var duplicateIndex = -1;
+
+        for (var i = conflicts.length - 1; i >= 0; i -= 1) {
+            var previous = conflicts[i] || {};
+            if (String(previous.fingerprint || '') !== fingerprint) continue;
+            var previousTime = Date.parse(previous.lastDetectedAt || previous.detectedAt || '') || 0;
+            if (nowMs - previousTime <= CONFLICT_DEDUPE_WINDOW_V236) {
+                duplicateIndex = i;
+                break;
+            }
         }
+
+        if (duplicateIndex >= 0) {
+            var duplicate = conflicts[duplicateIndex];
+            duplicate.lastDetectedAt = detectedAt;
+            duplicate.repeatCount = Math.max(1, Number(duplicate.repeatCount) || 1) + 1;
+            duplicate.status = 'resolved';
+            duplicate.resolution = 'cloud_wins';
+            duplicate.notification = 'silent';
+            duplicate.conflictingKeys = normalizedKeys;
+            duplicate.local = stripUndefined(localPayload || {});
+            duplicate.remote = stripUndefined(remotePayload || {});
+        } else {
+            conflicts.push({
+                id: rid(),
+                fingerprint: fingerprint,
+                collection: collection,
+                documentId: id,
+                detectedAt: detectedAt,
+                firstDetectedAt: detectedAt,
+                lastDetectedAt: detectedAt,
+                repeatCount: 1,
+                status: 'resolved',
+                resolution: 'cloud_wins',
+                notification: 'silent',
+                conflictingKeys: normalizedKeys,
+                local: stripUndefined(localPayload || {}),
+                remote: stripUndefined(remotePayload || {})
+            });
+        }
+
+        if (conflicts.length > CONFLICT_HISTORY_LIMIT_V236) {
+            conflicts = conflicts.slice(conflicts.length - CONFLICT_HISTORY_LIMIT_V236);
+        }
+        saveJson(key, conflicts);
+
+        // FinUp already resolves this condition automatically by applying the
+        // cloud revision and preserving the local copy in conflict history.
+        // Do not interrupt the user with a recurring red toast. The record is
+        // available for diagnostics when the user deliberately opens history.
+        return {
+            archived: duplicateIndex < 0,
+            duplicate: duplicateIndex >= 0,
+            fingerprint: fingerprint,
+            notification: 'silent'
+        };
     }
 
     function applyRemoteDocument(collection, id, raw, changeType, metadata) {
@@ -1387,6 +1458,8 @@
         sync: syncRealtime,
         _businessEqual: businessEqualV223,
         _threeWayMerge: threeWayMergeV223,
+        _archiveConflict: archiveConflict,
+        _conflictFingerprint: conflictFingerprintV236,
         _parseRtdbSignal: parseRtdbSignalEventV223,
         _rtdbSignalUrl: rtdbSignalUrlV223
     };

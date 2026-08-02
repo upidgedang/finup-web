@@ -1,4 +1,4 @@
-/* FinUp v2.3.3 professional report engine shared by Android and Web. */
+/* FinUp v2.3.9 single-source PDF layout engine shared by preview, Android, and Web. */
 (function () {
     'use strict';
     if (window.__finupReportV233) return;
@@ -79,10 +79,15 @@
         });
     }
 
-    function buildReportData() {
-        var list = typeof reportTransactions === 'function' ? reportTransactions() : [];
+    function buildReportData(filterSnapshot) {
+        var effectiveFilter = filterSnapshot && /^\d{4}-\d{2}-\d{2}$/.test(String(filterSnapshot.from || '')) && /^\d{4}-\d{2}-\d{2}$/.test(String(filterSnapshot.to || ''))
+            ? { from: String(filterSnapshot.from), to: String(filterSnapshot.to), dateMode: String(filterSnapshot.dateMode || 'custom') }
+            : { from: reportFilters.from, to: reportFilters.to, dateMode: reportFilters.dateMode || 'custom' };
+        var list = typeof transactionsBetween === 'function'
+            ? transactionsBetween(effectiveFilter.from, effectiveFilter.to).sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); })
+            : (typeof reportTransactions === 'function' ? reportTransactions() : []);
         var totals = typeof totalsBetween === 'function'
-            ? totalsBetween(reportFilters.from, reportFilters.to)
+            ? totalsBetween(effectiveFilter.from, effectiveFilter.to)
             : { income: 0, expense: 0 };
         var generatedAt = typeof nowIso === 'function' ? nowIso() : new Date().toISOString();
         var transactions = list.map(function (item, index) {
@@ -120,10 +125,11 @@
             generatedAt: generatedAt,
             generatedAtFormatted: formattedDateTime(generatedAt),
             period: {
-                from: safeText(reportFilters.from, 20),
-                to: safeText(reportFilters.to, 20),
-                fromFormatted: typeof shortDate === 'function' ? shortDate(reportFilters.from) : safeText(reportFilters.from, 24),
-                toFormatted: typeof shortDate === 'function' ? shortDate(reportFilters.to) : safeText(reportFilters.to, 24)
+                mode: safeText(effectiveFilter.dateMode, 32),
+                from: safeText(effectiveFilter.from, 20),
+                to: safeText(effectiveFilter.to, 20),
+                fromFormatted: typeof shortDate === 'function' ? shortDate(effectiveFilter.from) : safeText(effectiveFilter.from, 24),
+                toFormatted: typeof shortDate === 'function' ? shortDate(effectiveFilter.to) : safeText(effectiveFilter.to, 24)
             },
             owner: safeText(session && session.email ? session.email : '-', 120),
             totals: {
@@ -240,31 +246,36 @@
     }
 
     function buildAndroidPdf(report) {
-        var PAGE_W = 595, PAGE_H = 842, LEFT = 32, RIGHT = 32, TOP = 34, BOTTOM = 32;
+        var PAGE_W = 595, PAGE_H = 842, LEFT = 32, RIGHT = 32, TOP = 34;
+        var CONTENT_BOTTOM = 782, FOOTER_LINE_TOP = 798, FOOTER_TEXT_TOP = 806;
         var usableW = PAGE_W - LEFT - RIGHT;
         var pages = [], page = null, y = 0;
         function n(value) { return Math.round(Number(value) * 100) / 100; }
         function add(command) { page.commands.push(command); }
         function rect(x, top, width, height, fill, stroke) {
             var bottom = PAGE_H - top - height;
+            page.previewOps.push({ type: 'rect', x: Number(x), top: Number(top), width: Number(width), height: Number(height), fill: fill || '', stroke: stroke || '' });
             if (fill) add(fill + ' rg');
             if (stroke) add(stroke + ' RG');
             add(n(x) + ' ' + n(bottom) + ' ' + n(width) + ' ' + n(height) + ' re ' + (fill && stroke ? 'B' : fill ? 'f' : 'S'));
         }
         function line(x1, top1, x2, top2, stroke, width) {
+            page.previewOps.push({ type: 'line', x1: Number(x1), top1: Number(top1), x2: Number(x2), top2: Number(top2), stroke: stroke || '', width: Number(width || 1) });
             if (stroke) add(stroke + ' RG');
             add(n(width || 1) + ' w ' + n(x1) + ' ' + n(PAGE_H - top1) + ' m ' + n(x2) + ' ' + n(PAGE_H - top2) + ' l S');
         }
         function text(value, x, top, size, bold, color, align, width) {
-            var content = pdfEscape(value);
+            var plain = pdfAscii(value);
+            var content = pdfEscape(plain);
             var estimated = content.length * size * (bold ? 0.56 : 0.51);
             var px = x;
             if (align === 'right') px = x + Math.max(0, (width || 0) - estimated);
             else if (align === 'center') px = x + Math.max(0, ((width || 0) - estimated) / 2);
+            page.previewOps.push({ type: 'text', value: plain, x: Number(px), top: Number(top), size: Number(size), bold: !!bold, color: color || '0.08 0.13 0.18' });
             add((color || '0.08 0.13 0.18') + ' rg BT /' + (bold ? 'F2' : 'F1') + ' ' + n(size) + ' Tf ' + n(px) + ' ' + n(PAGE_H - top - size) + ' Td (' + content + ') Tj ET');
         }
         function newPage() {
-            page = { commands: [] };
+            page = { commands: [], previewOps: [] };
             pages.push(page);
             rect(0, 0, PAGE_W, 8, '0.04 0.15 0.22');
             rect(0, 8, PAGE_W, 3, '0.06 0.73 0.52');
@@ -275,7 +286,14 @@
             line(LEFT, 52, PAGE_W - RIGHT, 52, '0.84 0.89 0.88', 0.8);
             y = 64;
         }
-        function ensure(height) { if (!page || y + height > PAGE_H - BOTTOM - 18) newPage(); }
+        function ensure(height, onPageBreak) {
+            if (!page || y + height > CONTENT_BOTTOM) {
+                newPage();
+                if (typeof onPageBreak === 'function') onPageBreak();
+                return true;
+            }
+            return false;
+        }
         function sectionTitle(title) {
             ensure(24);
             text(title, LEFT, y, 10.5, true, '0.04 0.15 0.22');
@@ -300,7 +318,7 @@
             });
             var lines = Math.max.apply(Math, wraps.map(function (value) { return value.length; }));
             var rowH = Math.max(20, 8 + lines * (options.lineHeight || 9));
-            ensure(rowH + 1);
+            ensure(rowH + 1, options.onPageBreak);
             if (options.repeatHeader && options.header && y < 75) tableHeader(options.header.labels, options.header.widths);
             if (options.shade) rect(LEFT, y, usableW, rowH, '0.97 0.98 0.98');
             var x = LEFT;
@@ -339,8 +357,9 @@
         var accountWidths = [235, 125, usableW - 360];
         tableHeader([{toString:function(){return 'Nama akun';}}, {toString:function(){return 'Jenis';}}, {toString:function(){return 'Saldo';}, align:'right'}], accountWidths);
         if (!report.accounts.length) tableRow([{text:'Belum ada akun.'},{text:'-'},{text:'-',align:'right'}], accountWidths, {shade:true});
+        function repeatAccountHeader() { sectionTitle('SALDO AKUN - LANJUTAN'); tableHeader([{toString:function(){return 'Nama akun';}}, {toString:function(){return 'Jenis';}}, {toString:function(){return 'Saldo';}, align:'right'}], accountWidths); }
         report.accounts.forEach(function (account, index) {
-            tableRow([{text:account.name,bold:true},{text:account.type},{text:account.balanceFormatted,align:'right',bold:true}], accountWidths, {shade:index % 2 === 1});
+            tableRow([{text:account.name,bold:true,maxLines:2},{text:account.type,maxLines:2},{text:account.balanceFormatted,align:'right',bold:true,maxLines:2}], accountWidths, {shade:index % 2 === 1,onPageBreak:repeatAccountHeader});
         });
         y += 12;
 
@@ -348,8 +367,9 @@
         var categoryWidths = [300, 145, usableW - 445];
         tableHeader([{toString:function(){return 'Kategori';}}, {toString:function(){return 'Nominal';},align:'right'}, {toString:function(){return '%';},align:'right'}], categoryWidths);
         if (!report.categories.length) tableRow([{text:'Belum ada pengeluaran pada periode ini.'},{text:'-'},{text:'-'}], categoryWidths, {shade:true});
+        function repeatCategoryHeader() { sectionTitle('PENGELUARAN PER KATEGORI - LANJUTAN'); tableHeader([{toString:function(){return 'Kategori';}}, {toString:function(){return 'Nominal';},align:'right'}, {toString:function(){return '%';},align:'right'}], categoryWidths); }
         report.categories.forEach(function (category, index) {
-            tableRow([{text:category.name,bold:true},{text:category.amountFormatted,align:'right'},{text:String(category.percentage)+'%',align:'right'}], categoryWidths, {shade:index % 2 === 1});
+            tableRow([{text:category.name,bold:true,maxLines:2},{text:category.amountFormatted,align:'right',maxLines:2},{text:String(category.percentage)+'%',align:'right',maxLines:2}], categoryWidths, {shade:index % 2 === 1,onPageBreak:repeatCategoryHeader});
         });
         y += 14;
 
@@ -377,16 +397,16 @@
                 return pdfWrap(cell.text, chars, cell.maxLines || 2).length;
             }));
             var estimatedHeight = Math.max(20, 8 + estimatedLines * 8.2);
-            if (y + estimatedHeight > PAGE_H - BOTTOM - 18) { newPage(); sectionTitle('RINCIAN TRANSAKSI - LANJUTAN'); tableHeader(txColumns, txWidths); }
-            tableRow(cells, txWidths, {shade:index % 2 === 1,fontSize:6.5,lineHeight:8.2});
+            function repeatTransactionHeader() { sectionTitle('RINCIAN TRANSAKSI - LANJUTAN'); tableHeader(txColumns, txWidths); }
+            ensure(estimatedHeight + 1, repeatTransactionHeader);
+            tableRow(cells, txWidths, {shade:index % 2 === 1,fontSize:6.5,lineHeight:8.2,onPageBreak:repeatTransactionHeader});
         });
 
         pages.forEach(function (item, index) {
             page = item;
-            var footerTop = PAGE_H - BOTTOM - 8;
-            line(LEFT, footerTop - 6, PAGE_W - RIGHT, footerTop - 6, '0.84 0.89 0.88', 0.6);
-            text('FinUp - Atur uang, raih tujuan.', LEFT, footerTop, 7, false, '0.40 0.47 0.51');
-            text('Halaman ' + (index + 1) + ' dari ' + pages.length, PAGE_W - RIGHT - 100, footerTop, 7, false, '0.40 0.47 0.51', 'right', 100);
+            line(LEFT, FOOTER_LINE_TOP, PAGE_W - RIGHT, FOOTER_LINE_TOP, '0.84 0.89 0.88', 0.6);
+            text('FinUp - Atur uang, raih tujuan.', LEFT, FOOTER_TEXT_TOP, 7, false, '0.40 0.47 0.51');
+            text('Halaman ' + (index + 1) + ' dari ' + pages.length, PAGE_W - RIGHT - 100, FOOTER_TEXT_TOP, 7, false, '0.40 0.47 0.51', 'right', 100);
         });
 
         var objects = [];
@@ -415,7 +435,19 @@
             pdf += String(offsets[offsetIndex]).padStart(10, '0') + ' 00000 n \n';
         }
         pdf += 'trailer\n<< /Size ' + objects.length + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n';
+        buildAndroidPdf.lastPreviewPages = pages.map(function (item) { return item.previewOps.slice(); });
+        buildAndroidPdf.lastPageCount = pages.length;
         return pdf;
+    }
+
+    function buildPdfPreviewPackageV237(report) {
+        var pdf = buildAndroidPdf(report);
+        return {
+            pdf: pdf,
+            pageWidth: 595,
+            pageHeight: 842,
+            pages: (buildAndroidPdf.lastPreviewPages || []).map(function (ops) { return ops.slice(); })
+        };
     }
 
     function openPrintableReport() {
@@ -476,6 +508,7 @@
         buildCsv: buildCsv,
         buildPrintableHtml: buildPrintableHtml,
         buildAndroidPdf: buildAndroidPdf,
+        buildPdfPreviewPackage: buildPdfPreviewPackageV237,
         openPrintableReport: openPrintableReport,
         exportCsv: exportCsv,
         exportPdf: exportPdf

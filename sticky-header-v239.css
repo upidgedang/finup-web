@@ -1,0 +1,73 @@
+/* FinUp v2.3.9 — reliable sticky headers for Web and Android WebView. */
+:root {
+  --finup-topbar-height: 78px;
+}
+
+/* The main application header is pinned to the viewport. Padding on the
+   application shell preserves the document flow, so content never hides
+   underneath the header. */
+#appScreen:not(.hidden) {
+  padding-top: var(--finup-topbar-height) !important;
+}
+
+#appScreen > .topbar {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 70 !important;
+  margin: 0;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  contain: layout paint style;
+}
+
+/* Feature pages retain a true sticky header inside their own scroll
+   container. This covers settings, forms, reports, and legal pages. */
+.modal-wrap:not(.finup-export-modal) > .modal > .full-page-header {
+  position: sticky !important;
+  position: -webkit-sticky !important;
+  top: 0 !important;
+  z-index: 60 !important;
+  flex: 0 0 auto;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  isolation: isolate;
+}
+
+/* Keep sticky headers visually separated from scrolled content. */
+#appScreen > .topbar::after,
+.modal-wrap:not(.finup-export-modal) > .modal > .full-page-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: rgba(255,255,255,.08);
+  pointer-events: none;
+}
+
+/* Export preview intentionally owns its full-screen header and scrolling. */
+.finup-export-modal .finup-export-dialog {
+  padding-top: 0 !important;
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  :root {
+    --finup-topbar-height: 58px;
+  }
+}
+
+@media print {
+  #appScreen > .topbar,
+  .bottom-nav,
+  .fab {
+    display: none !important;
+  }
+
+  #appScreen:not(.hidden) {
+    padding-top: 0 !important;
+  }
+}

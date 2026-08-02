@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#081522">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://www.gstatic.com; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none'">
 <title>FinUp</title>
+<link rel="stylesheet" href="report-period-v234.css?v=2.3.9-r1">
 <style>
 :root{--android-safe-top:0px;--android-safe-bottom:0px;--safe-top:max(env(safe-area-inset-top,0px),var(--android-safe-top));--safe-bottom:max(env(safe-area-inset-bottom,0px),var(--android-safe-bottom));--bg:#f4f7f9;--surface:#fff;--surface2:#f8fafb;--text:#13202c;--muted:#6f7b86;--line:#e6ebee;--navy:#081522;--navy2:#10283a;--green:#0fba85;--green2:#087e5d;--green-soft:#e5faf3;--red:#e8504f;--red-soft:#fff0ef;--amber:#f4a51c;--amber-soft:#fff7e6;--blue:#3d83f6;--blue-soft:#edf4ff;--shadow:0 10px 30px rgba(16,40,58,.08);--radius:20px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}body{overscroll-behavior-y:contain}button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}.screen{min-height:100vh;min-height:100dvh}.center-screen{display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-top)) 18px calc(24px + var(--safe-bottom));background:radial-gradient(circle at 82% 10%,#12634c 0,transparent 34%),linear-gradient(145deg,#07111e,#10283a 58%,#07523e)}
@@ -47,7 +48,7 @@ html[data-theme="dark"] .modal-wrap,html[data-theme="dark"] .modal{background:va
 .quick-add-choice i{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin:0 auto 10px;border-radius:16px;font-size:25px;font-style:normal}.quick-add-choice.income i{background:var(--green-soft);color:var(--green2)}.quick-add-choice.expense i{background:var(--red-soft);color:var(--red)}
 .quick-add-cancel{width:100%;margin-top:13px}.idr-input-note{font-size:10px;color:var(--muted);margin-top:5px}
 
-/* FinUp v2.3.3 startup, professional reports, and Android back handling. */
+/* FinUp v2.3.8 scroll reliability plus exact preview/export parity. */
 .boot-screen{background:linear-gradient(155deg,var(--navy),var(--navy2));color:#fff;text-align:center;padding:28px}
 .boot-card{display:flex;flex-direction:column;align-items:center;gap:12px}
 .boot-card img{width:76px;height:76px;border-radius:22px;box-shadow:0 12px 34px rgba(0,0,0,.22)}
@@ -60,7 +61,9 @@ html[data-theme="dark"] .modal-wrap,html[data-theme="dark"] .modal{background:va
 @media (prefers-contrast:more){.list-item,.card,.input,.tab,.menu-card{border-width:2px}.tiny,.list-text small{color:var(--text)}}
 
 </style>
-<link rel="stylesheet" href="responsive-v233-r2.css">
+<link rel="stylesheet" href="responsive-v233-r2.css?v=2.3.9-r1">
+<link rel="stylesheet" href="scroll-fix-v238.css?v=2.3.9-r1">
+<link rel="stylesheet" href="sticky-header-v239.css?v=2.3.9-r1">
 </head>
 <body>
 <section id="bootScreen" class="screen center-screen boot-screen" aria-live="polite" aria-busy="true">
@@ -105,7 +108,7 @@ html[data-theme="dark"] .modal-wrap,html[data-theme="dark"] .modal{background:va
 <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = '2.3.3', VERSION_CODE = 31;
+const APP_VERSION = '2.3.9', VERSION_CODE = 37;
 const FIREBASE_CONFIG = Object.freeze({ projectId: 'finup-pribadi-a4ea7', apiKey: 'AIzaSyCQYZGVRQA0rUIrpC5xMpQeTum-pI-hTIE', storageBucket: 'finup-pribadi-a4ea7.firebasestorage.app', databaseURL: 'https://finup-pribadi-a4ea7-default-rtdb.asia-southeast1.firebasedatabase.app' });
 const KSES = 'finup_session_v1', COLLECTIONS = ['accounts', 'categories', 'transactions', 'budgets', 'recurring', 'goals', 'debts', 'activities'];
 let config = FIREBASE_CONFIG, session = null, authMode = 'login', page = 'dashboard', planningTab = 'budgets', filterType = 'all', busy = false, privacy = false, verificationCheckBusy = false, verificationTimer = null;
@@ -744,13 +747,12 @@ function dismissPullTarget() { const target = pullTarget; if (!target) {
     clearPullTarget(); closeModal(); }, 180); }
 function setPullIndicator(label, distance) { const box = $('pullRefresh'); if (!box)
     return; box.style.opacity = String(Math.min(1, distance / 45)); box.style.transform = `translate(-50%,${distance - 58}px)`; $('refreshLabel').textContent = label; }
-function initPullGestures() { document.addEventListener('touchstart', e => { if (pullRefreshing || $('appScreen').classList.contains('hidden') || $('modalRoot').firstElementChild || page !== 'dashboard' || window.scrollY > 0 || e.touches.length !== 1)
+function dashboardScrollTopV238() { const se = document.scrollingElement || document.documentElement || document.body; return Math.max(window.scrollY || 0, se ? se.scrollTop || 0 : 0); }
+function initPullGestures() { document.addEventListener('touchstart', e => { const target = e.target && e.target.closest ? e.target.closest('input,textarea,select,button,.tabs,.period-tabs,[data-table-scroll],.table-wrap,.report-table-wrap') : null; if (target || pullRefreshing || $('appScreen').classList.contains('hidden') || $('modalRoot').firstElementChild || page !== 'dashboard' || dashboardScrollTopV238() > 1 || e.touches.length !== 1)
     return; pullMode = 'refresh'; pullTarget = null; pullStart = e.touches[0].clientY; pullStartX = e.touches[0].clientX; pullDistance = 0; pullActive = true; }, { passive: true }); document.addEventListener('touchmove', e => { if (!pullActive || e.touches.length !== 1)
-    return; const dy = e.touches[0].clientY - pullStart, dx = Math.abs(e.touches[0].clientX - pullStartX); if (dy <= 0 || dx > Math.max(45, dy)) {
-    pullDistance = 0;
-    return;
-} if (dy > 7)
-    e.preventDefault(); pullDistance = Math.min(125, dy * .55); setPullIndicator(pullDistance > 72 ? 'Lepas untuk menyegarkan' : 'Tarik untuk menyegarkan', pullDistance); }, { passive: false }); document.addEventListener('touchend', () => { if (!pullActive)
+    return; const dy = e.touches[0].clientY - pullStart, dx = Math.abs(e.touches[0].clientX - pullStartX); if (dy <= 0 || dx > Math.max(32, dy) || dashboardScrollTopV238() > 1) {
+    pullActive = false; pullDistance = 0; finishPullRefresh(); return;
+} if (dy > 14) e.preventDefault(); pullDistance = Math.min(125, dy * .55); setPullIndicator(pullDistance > 72 ? 'Lepas untuk menyegarkan' : 'Tarik untuk menyegarkan', pullDistance); }, { passive: false }); document.addEventListener('touchend', () => { if (!pullActive)
     return; pullActive = false; const distance = pullDistance; pullMode = ''; pullDistance = 0; if (distance > 72) {
     pullRefreshing = true;
     $('refreshRing').classList.add('spin');
@@ -771,7 +773,7 @@ function currentMonthToToday() { const to = localDate(); return { from: `${to.sl
 function defaultTxFilters() { const range = currentMonthToToday(); return { type: 'all', search: '', from: range.from, to: range.to, dateMode: 'monthToDate', account: '', category: '', min: '', max: '' }; }
 function ensureRealtimeTxDateRange(save = false) { if (!txFilters || txFilters.dateMode !== 'custom') { const range = currentMonthToToday(); const changed = txFilters.from !== range.from || txFilters.to !== range.to || txFilters.dateMode !== 'monthToDate'; txFilters.from = range.from; txFilters.to = range.to; txFilters.dateMode = 'monthToDate'; if (save && changed && session && session.localId) saveJson(uidKey('tx_filters'), txFilters); } return txFilters; }
 function stampValue(x) { const t = Date.parse((x === null || x === void 0 ? void 0 : x.updatedAt) || (x === null || x === void 0 ? void 0 : x.createdAt) || 0); return Number.isFinite(t) ? t : 0; }
-function loadV2Settings() { v2Settings = Object.assign(Object.assign({}, V2_SETTINGS_DEFAULT), loadJson(uidKey('settings'), {})); dashboardPeriod = v2Settings.dashboardPeriod || 'month'; const storedTxFilters = loadJson(uidKey('tx_filters'), {}); txFilters = Object.assign(defaultTxFilters(), storedTxFilters); if (!storedTxFilters.dateMode) txFilters.dateMode = 'monthToDate'; ensureRealtimeTxDateRange(true); reportFilters = Object.assign({ from: `${new Date().getFullYear()}-01-01`, to: localDate() }, loadJson(uidKey('report_filters'), {})); lastSyncAt = localStorage.getItem(uidKey('last_sync')) || ''; lastReminderHash = localStorage.getItem(uidKey('reminder_hash')) || ''; applyV2Settings(); }
+function loadV2Settings() { v2Settings = Object.assign(Object.assign({}, V2_SETTINGS_DEFAULT), loadJson(uidKey('settings'), {})); dashboardPeriod = v2Settings.dashboardPeriod || 'month'; const storedTxFilters = loadJson(uidKey('tx_filters'), {}); txFilters = Object.assign(defaultTxFilters(), storedTxFilters); if (!storedTxFilters.dateMode) txFilters.dateMode = 'monthToDate'; ensureRealtimeTxDateRange(true); reportFilters = Object.assign({ dateMode: 'monthToDate', from: currentMonthToToday().from, to: currentMonthToToday().to }, loadJson(uidKey('report_filters'), {})); lastSyncAt = localStorage.getItem(uidKey('last_sync')) || ''; lastReminderHash = localStorage.getItem(uidKey('reminder_hash')) || ''; applyV2Settings(); }
 function saveV2Settings() { saveJson(uidKey('settings'), v2Settings); applyV2Settings(); }
 function applyV2Settings() { const systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; const dark = v2Settings.theme === 'dark' || (v2Settings.theme === 'system' && systemDark); document.documentElement.dataset.theme = dark ? 'dark' : 'light'; if (window.FinUpAndroid) {
     try {
@@ -2477,10 +2479,10 @@ renderTransactions = function () {
 const infoContentV215Base = infoContent;
 infoContent = function (kind) {
     if (kind === 'about')
-        return `<div class="version-box"><img src="logo-mark.png"><h2>FinUp</h2><p>Atur uang, raih tujuan.</p><span class="badge badge-green">Versi ${APP_VERSION}</span><p>Version Code ${VERSION_CODE}</p></div><div class="legal"><h3>Pengembang</h3><p><b>${FINUP_DEVELOPER_V213}</b><br>${FINUP_SUPPORT_EMAIL_V213}</p><h3>Yang baru di v2.3.3</h3><ul><li>Layar login tidak lagi muncul sekejap ketika sesi Firebase masih aktif.</li><li>Menekan Enter/Done pada kolom kata sandi sekarang menjalankan proses login yang sama dengan tombol Masuk.</li><li>Sesi Firebase aplikasi Android dipindahkan dari localStorage ke penyimpanan terenkripsi berbasis Android Keystore.</li><li>Ditambahkan diagnostik lokal, pencatatan crash, perlindungan renderer WebView, dan pemeriksaan kesehatan data.</li><li>Daftar transaksi besar ditampilkan bertahap per 200 item agar navigasi tetap responsif.</li><li>Aksesibilitas keyboard, status pembaca layar, dan label tombol ditingkatkan.</li><li>Cookie pihak ketiga, cleartext traffic, SSL error, geolokasi, dan navigasi WebView diperketat.</li></ul><h3>Teknologi lisensi</h3><p>Private key tidak disimpan di APK. Aplikasi hanya membawa public key untuk memverifikasi token FUP2.</p></div>`;
+        return `<div class="version-box"><img src="logo-mark.png"><h2>FinUp</h2><p>Atur uang, raih tujuan.</p><span class="badge badge-green">Versi ${APP_VERSION}</span><p>Version Code ${VERSION_CODE}</p></div><div class="legal"><h3>Pengembang</h3><p><b>${FINUP_DEVELOPER_V213}</b><br>${FINUP_SUPPORT_EMAIL_V213}</p><h3>Yang baru di v2.3.9</h3><ul><li>Header utama tetap terlihat ketika Dashboard dan modul digulir.</li><li>Header halaman fitur tetap menempel di atas di dalam kontainer gulirnya.</li><li>Tinggi header dihitung otomatis agar isi tidak tertutup pada portrait, landscape, tablet, dan desktop.</li><li>Safe area Android dan perangkat berponi tetap dihormati.</li><li>Perbaikan gulir, laporan, dan sinkronisasi sebelumnya tetap dipertahankan.</li></ul><h3>Teknologi lisensi</h3><p>Private key tidak disimpan di APK. Aplikasi hanya membawa public key untuk memverifikasi token FUP2.</p></div>`;
     let html = infoContentV215Base(kind);
     if (kind === 'tutorial')
-        html = html.replace('<div class="notice notice-info"><b>Mulai cepat:</b>', '<div class="notice notice-ok"><b>Pembaruan v2.3.3:</b> data keuangan dan konfigurasi akun kini tersinkron antarperangkat. PIN, biometrik, serta izin Android tetap khusus perangkat.</div><div class="notice notice-info"><b>Mulai cepat:</b>');
+        html = html.replace('<div class="notice notice-info"><b>Mulai cepat:</b>', '<div class="notice notice-ok"><b>Pembaruan v2.3.9:</b> header utama dan header halaman fitur kini tetap terlihat saat seluruh modul digulir.</div><div class="notice notice-info"><b>Mulai cepat:</b>');
     if (kind === 'privacy')
         html = html.replace('<h3>Penghapusan</h3>', '<h3>Diagnostik lokal</h3><p>FinUp menyimpan maksimal 40 catatan error teknis secara lokal untuk membantu pemeriksaan aplikasi. Catatan ini tidak dikirim otomatis ke pengembang, tidak sengaja memuat data keuangan, dan token yang terdeteksi disamarkan. Pengguna dapat menghapusnya melalui Diagnostik Aplikasi.</p><h3>Penghapusan</h3>');
     return html;
@@ -2516,14 +2518,17 @@ function handleStorageOriginMigrationV216() {
 }
 window.__finupStorageMigrationHandled = handleStorageOriginMigrationV216();
 </script>
-<script src="security-v230.js?v=2.3.3-r1"></script>
-<script src="realtime-v230.js?v=2.3.3-r1"></script>
-<script src="ui-v230.js?v=2.3.3-r1"></script>
-<script src="settings-sync-v230.js?v=2.3.3-r1"></script>
-<script src="quality-v230.js?v=2.3.3-r1"></script>
-<script src="hardening-v232.js?v=2.3.3-r1"></script>
-<script src="report-v233.js?v=2.3.3-r1"></script>
-<script src="web-adapter-v232.js?v=2.3.3-r1"></script>
+<script src="security-v230.js?v=2.3.9-r1"></script>
+<script src="realtime-v230.js?v=2.3.9-r1"></script>
+<script src="ui-v230.js?v=2.3.9-r1"></script>
+<script src="settings-sync-v230.js?v=2.3.9-r1"></script>
+<script src="quality-v230.js?v=2.3.9-r1"></script>
+<script src="hardening-v232.js?v=2.3.9-r1"></script>
+<script src="report-v233.js?v=2.3.9-r1"></script>
+<script src="web-adapter-v232.js?v=2.3.9-r1"></script>
+<script src="report-period-v234.js?v=2.3.9-r1"></script>
+<script src="scroll-fix-v238.js?v=2.3.9-r1"></script>
+<script src="sticky-header-v239.js?v=2.3.9-r1"></script>
 <script>
 if (!window.__finupStorageMigrationHandled) {
     if (typeof installFullScreenNavigation === 'function') installFullScreenNavigation();

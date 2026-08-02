@@ -46,7 +46,8 @@ Periksa file wajib:
 
 ```bash
 for file in \
-  index.html web-adapter-v232.js hardening-v232.js report-v233.js version.json \
+  index.html web-adapter-v232.js hardening-v232.js report-v233.js \
+  report-period-v234.js report-period-v234.css version.json \
   deploy/finup_updater.py deploy/install-finup-updater.sh
  do
   sudo test -s "/var/www/finup/$file" && echo "OK: $file" || echo "TIDAK ADA: $file"
@@ -126,7 +127,7 @@ curl -sS https://finup.gawelive.xyz/api/finup-update/health
 sudo ss -lntp | grep -E ':7575|:8731'
 ```
 
-## C. Upgrade Revision 4 ke v2.3.2
+## C. Memperbarui ke FinUp Web v2.3.6
 
 ```bash
 cd /var/www/finup
@@ -139,7 +140,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Revision 4 perlu menjalankan installer sekali agar runtime updater baru di `/opt` ikut terpasang.
+Perintah tersebut mengambil source v2.3.6, memasang ulang runtime updater, dan tidak mengubah StreamFlow pada port `7575`.
 
 ## D. Update berikutnya
 

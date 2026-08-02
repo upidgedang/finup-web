@@ -98,7 +98,7 @@ def ensure_repository() -> str:
 def read_version() -> dict[str, Any]:
     version_file = APP_DIR / "version.json"
     if not version_file.is_file():
-        return {"versionName": "2.3.3", "versionCode": 31, "webRevision": 0}
+        return {"versionName": "2.3.9", "versionCode": 37, "webRevision": 0}
     try:
         value = json.loads(version_file.read_text(encoding="utf-8"))
         return value if isinstance(value, dict) else {}

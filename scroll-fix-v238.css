@@ -1,0 +1,90 @@
+/* FinUp v2.3.8 — vertical scroll reliability for Android WebView and Web. */
+html {
+  height: auto !important;
+  min-height: 100%;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  touch-action: pan-y pinch-zoom;
+}
+
+body {
+  height: auto !important;
+  min-height: 100%;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y pinch-zoom;
+}
+
+#appScreen:not(.hidden) {
+  height: auto !important;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: visible !important;
+  touch-action: pan-y pinch-zoom;
+}
+
+#mainContent,
+.main {
+  height: auto !important;
+  min-height: 0;
+  overflow: visible !important;
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Feature pages use one bounded viewport and one explicit scroll container. */
+.modal-wrap:not(.finup-export-modal) {
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden !important;
+  touch-action: pan-y;
+}
+
+.modal-wrap:not(.finup-export-modal) > .modal {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Export preview remains independently scrollable. */
+.finup-export-modal {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y pinch-zoom;
+}
+
+.finup-export-dialog {
+  height: auto !important;
+  min-height: 100%;
+  overflow: visible !important;
+}
+
+.finup-a4-preview,
+.finup-csv-preview,
+.tabs,
+.period-tabs,
+.table-wrap,
+.report-table-wrap,
+[data-table-scroll] {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hidden pull-to-refresh indicator must never intercept gestures. */
+.pull-refresh {
+  pointer-events: none;
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  .modal-wrap:not(.finup-export-modal) > .modal {
+    padding-bottom: max(18px, calc(18px + var(--safe-bottom)));
+  }
+}

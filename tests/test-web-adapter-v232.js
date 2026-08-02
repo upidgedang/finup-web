@@ -125,7 +125,7 @@ function makeContext(android = false) {
   c.exportCsvReport();
   assert.strictEqual(env.downloads[1].filename, 'FinUp-laporan-profesional-2026-07-01-2026-07-31.csv');
   assert(c.renderReports().includes('PDF Profesional'));
-  assert(c.infoContent('about').includes('v2.3.3 Revision 1'));
+  assert(c.infoContent('about').includes('v2.3.9 Revision 1'));
 
   const android = makeContext(true);
   assert.strictEqual(android.context.__finupWebAdapterV232, undefined);

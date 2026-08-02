@@ -1,0 +1,20 @@
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const root = path.resolve(__dirname, '..');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const css = fs.readFileSync(path.join(root, 'sticky-header-v239.css'), 'utf8');
+const js = fs.readFileSync(path.join(root, 'sticky-header-v239.js'), 'utf8');
+function ok(value, message) { if (!value) throw new Error(message); }
+ok(html.includes('sticky-header-v239.css?v=2.3.9-r1'), 'sticky CSS must load after scroll CSS');
+ok(html.includes('sticky-header-v239.js?v=2.3.9-r1'), 'sticky JS must load after scroll JS');
+ok(css.includes('#appScreen > .topbar'), 'main header selector missing');
+ok(css.includes('position: fixed !important'), 'main header must remain pinned to viewport');
+ok(css.includes('padding-top: var(--finup-topbar-height)'), 'content offset missing');
+ok(css.includes('.modal > .full-page-header'), 'feature-page sticky selector missing');
+ok(css.includes('position: sticky !important'), 'feature-page header must be sticky');
+ok(css.includes('top: 0 !important'), 'sticky top anchor missing');
+ok(js.includes('ResizeObserver'), 'dynamic header measurement missing');
+ok(js.includes("--finup-topbar-height"), 'dynamic content offset variable missing');
+ok(js.includes('FinUpStickyHeaderV239'), 'sticky diagnostics missing');
+console.log('PASS sticky header static policy v2.3.9');
